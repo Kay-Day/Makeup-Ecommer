@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-blur-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-100 dark:border-stone-800 shadow-[0_4px_30px_rgba(79,95,63,0.03)] h-20">
+<div class="flex justify-between items-center h-full px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold tracking-tighter text-emerald-900 dark:text-emerald-50">TMC Medical</div>
+<nav class="hidden md:flex items-center space-x-10 font-manrope font-medium tracking-tight">
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Treatments</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Shop</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Doctors</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Clinics</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Philosophy</a>
+</nav>
+<div class="flex items-center space-x-6">
+<button class="material-symbols-outlined text-stone-600" data-icon="shopping_bag">shopping_bag</button>
+<button class="material-symbols-outlined text-emerald-900" data-icon="person">person</button>
+</div>
+</div>
+</header>
+<main class="pt-20 min-h-screen">
+<div class="max-w-[1440px] mx-auto flex flex-col md:flex-row min-h-[calc(100vh-80px)]">
+<!-- SideNavBar -->
+<aside class="md:w-64 bg-stone-50 dark:bg-stone-950 border-r border-stone-200 dark:border-stone-800 flex flex-col h-full py-6">
+<div class="px-6 mb-10 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-secondary-fixed">
+<img alt="TMC Admin" class="w-full h-full object-cover" data-alt="A professional and warm close-up portrait of a sophisticated woman with radiant, healthy skin in a bright, high-end medical spa setting. The lighting is soft and natural, emphasizing a clean and airy aesthetic that matches a luxury clinical brand. Her expression is calm and confident, reflecting the premium dermatological results provided by TMC Medical Vietnam." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhYaYFnvM6MAOvgFzdOnDemuvoK4wu8GMc6HLeW0sfTO7aXu-Wo9ASj-6izwKWq9z_EBNEWzJy37DQn3oUMNxt4vv6xkEEzM1ItmKh4iFr2DD1bsyxQrp3Diw8lsi95uneEUtaF_tgsIMTcjH7xhTL8ralpm5C-fm8U0YWsSLXfDn-wevV1774APb3y3W_rB2LnoZkE5p6H-ue9Dr5AK04vDRDOGhxuA_sHHr71CV0QQn1DA8xidhMTXYjrq_SJdf08ryEX1T7rzw"/>
+</div>
+<div>
+<h3 class="font-manrope text-sm font-black text-emerald-900 dark:text-emerald-50">TMC Admin</h3>
+<p class="font-manrope text-[10px] uppercase tracking-widest text-stone-500">Medical Portal</p>
+</div>
+</div>
+<nav class="flex flex-col flex-grow px-4">
+<a class="flex items-center gap-3 px-4 py-3 bg-emerald-900 text-white rounded-lg my-1 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+                        Profile
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg my-1 font-manrope text-sm font-semibold transition-all scale-95 active:scale-100" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+                        Order History
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg my-1 font-manrope text-sm font-semibold transition-all scale-95 active:scale-100" href="#">
+<span class="material-symbols-outlined" data-icon="face_6">face_6</span>
+                        My Skin Profile
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg my-1 font-manrope text-sm font-semibold transition-all scale-95 active:scale-100" href="#">
+<span class="material-symbols-outlined" data-icon="location_on">location_on</span>
+                        Addresses
+                    </a>
+<div class="mt-auto pt-10">
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg my-1 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                            Settings
+                        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 rounded-lg my-1 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                            Logout
+                        </a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<section class="flex-grow bg-white px-8 md:px-16 py-12 md:py-20 overflow-y-auto">
+<div class="max-w-4xl">
+<header class="mb-12">
+<h1 class="font-h1 text-h1 text-primary mb-2">My Account</h1>
+<p class="font-body-lg text-body-lg text-stone-500">Manage your personal details and clinical skin assessment.</p>
+</header>
+<!-- Personal Details Bento Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+<div class="md:col-span-2 bg-surface-container-low/30 border border-secondary-fixed p-8 rounded-xl shadow-[0_4px_30px_rgba(79,95,63,0.02)]">
+<h2 class="font-h3 text-h3 text-primary mb-8">Personal Details</h2>
+<form class="space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-stone-500">FULL NAME</label>
+<input class="w-full bg-transparent border-b border-stone-200 py-2 focus:border-primary-container outline-none font-body-md text-on-surface" type="text" value="Sophia Nguyen"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-stone-500">EMAIL ADDRESS</label>
+<input class="w-full bg-transparent border-b border-stone-200 py-2 focus:border-primary-container outline-none font-body-md text-on-surface" type="email" value="sophia.nguyen@example.com"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-stone-500">PHONE NUMBER</label>
+<input class="w-full bg-transparent border-b border-stone-200 py-2 focus:border-primary-container outline-none font-body-md text-on-surface" type="tel" value="+84 901 234 567"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-stone-500">DATE OF BIRTH</label>
+<input class="w-full bg-transparent border-b border-stone-200 py-2 focus:border-primary-container outline-none font-body-md text-on-surface" type="text" value="March 12, 1992"/>
+</div>
+</div>
+<div class="pt-4">
+<button class="bg-primary-container text-white px-8 py-3 rounded-full font-manrope font-bold text-sm hover:opacity-90 transition-opacity">
+                                        Update Profile
+                                    </button>
+</div>
+</form>
+</div>
+<!-- Side Summary Card -->
+<div class="bg-primary text-white p-8 rounded-xl flex flex-col justify-between">
+<div>
+<h3 class="font-h3 text-h3 mb-4">Membership</h3>
+<div class="bg-primary-fixed/20 rounded-lg p-4 mb-6">
+<p class="font-label-caps text-[10px] text-primary-fixed mb-1">CURRENT TIER</p>
+<p class="font-h3 text-h3 text-primary-fixed">Jade Elite</p>
+</div>
+<p class="font-body-md opacity-80 mb-6">You are 250 points away from Emerald Status and complimentary laser treatments.</p>
+</div>
+<button class="w-full border border-primary-fixed/30 py-3 rounded-full font-manrope font-bold text-sm hover:bg-white/5 transition-all">
+                                View Benefits
+                            </button>
+</div>
+</div>
+<!-- Skin Profile Summary -->
+<div class="space-y-8">
+<div class="flex justify-between items-end">
+<h2 class="font-h2 text-h2 text-primary">Skin Profile</h2>
+<a class="text-primary font-bold text-sm flex items-center gap-2 hover:underline" href="#">
+                                Full Assessment <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Characteristic Card -->
+<div class="bg-white border border-secondary-fixed p-6 rounded-xl text-center shadow-[0_30px_50px_rgba(79,95,63,0.03)]">
+<span class="material-symbols-outlined text-primary text-3xl mb-4" data-icon="opacity">opacity</span>
+<p class="font-label-caps text-stone-500 mb-1">TYPE</p>
+<p class="font-h3 text-h3 text-on-surface">Combination</p>
+</div>
+<!-- Characteristic Card -->
+<div class="bg-white border border-secondary-fixed p-6 rounded-xl text-center shadow-[0_30px_50px_rgba(79,95,63,0.03)]">
+<span class="material-symbols-outlined text-primary text-3xl mb-4" data-icon="flare">flare</span>
+<p class="font-label-caps text-stone-500 mb-1">SENSITIVITY</p>
+<p class="font-h3 text-h3 text-on-surface">Moderate</p>
+</div>
+<!-- Characteristic Card -->
+<div class="bg-white border border-secondary-fixed p-6 rounded-xl text-center shadow-[0_30px_50px_rgba(79,95,63,0.03)]">
+<span class="material-symbols-outlined text-primary text-3xl mb-4" data-icon="spa">spa</span>
+<p class="font-label-caps text-stone-500 mb-1">CONCERN</p>
+<p class="font-h3 text-h3 text-on-surface">Hydration</p>
+</div>
+<!-- Characteristic Card -->
+<div class="bg-white border border-secondary-fixed p-6 rounded-xl text-center shadow-[0_30px_50px_rgba(79,95,63,0.03)]">
+<span class="material-symbols-outlined text-primary text-3xl mb-4" data-icon="calendar_month">calendar_month</span>
+<p class="font-label-caps text-stone-500 mb-1">NEXT VISIT</p>
+<p class="font-h3 text-h3 text-on-surface">Oct 24</p>
+</div>
+</div>
+<!-- Clinical Image Showcase (Clinical Carousel style) -->
+<div class="bg-surface-container-low border border-secondary-fixed rounded-2xl p-10 overflow-hidden relative">
+<div class="flex flex-col md:flex-row gap-12 items-center">
+<div class="md:w-1/2 rounded-xl overflow-hidden shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="A high-resolution clinical photograph of professional dermatological equipment in a bright, pristine medical environment. The scene is bathed in soft, cool-toned laboratory lighting that highlights the precision and cleanliness of TMC Medical Vietnam's facilities. The image conveys a sense of high-tech medical luxury and expert dermatological care through its minimalist and airy composition." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWmlvajy1d3Cf2wthlTO2J3chSZxR-V82P6daH-ruTFKpY3L6_mHDRGAm6IsvuKY3YJOc77RVFnzk_uAQ9hZ3G378fyms_i172Vobh5TqRr7h0OdxSG0YpRlYErFSy0OcVRU-tuWJ4b0v6eak8v7YS1GPr1EsNS6SOdejSKWh819uSQh6c0kMrSffDFoxZuYgIqUYVlOODluw_W7pq-vY6j6LQ8NuL88i_GiW9UUgOpRRjYjZT0TaIihxpWUwFvHkJu05dpDdxAYQ"/>
+</div>
+<div class="md:w-1/2 space-y-6">
+<span class="bg-secondary-fixed text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Latest Scan</span>
+<h3 class="font-h2 text-h2 text-primary">VISIA Analysis Result</h3>
+<p class="font-body-lg text-body-lg text-stone-600">Your recent collagen density scan shows a 12% improvement following the series of Thermage FLX sessions. Your skin barrier resilience is currently at peak levels.</p>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 text-primary-container font-semibold">
+<span class="material-symbols-outlined" data-icon="check_circle" data-weight="fill">check_circle</span> 
+                                            Collagen Production: +12%
+                                        </li>
+<li class="flex items-center gap-3 text-primary-container font-semibold">
+<span class="material-symbols-outlined" data-icon="check_circle" data-weight="fill">check_circle</span> 
+                                            Pigmentation: -8%
+                                        </li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-20 px-8 md:px-16 bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1440px] mx-auto">
+<div class="col-span-1 md:col-span-1">
+<div class="font-bold text-emerald-900 dark:text-emerald-50 text-xl mb-6">TMC Medical</div>
+<p class="text-stone-500 text-sm leading-relaxed mb-8">Elevating Vietnamese dermatology through clinical precision and premium hospitality. Experience the intersection of science and serenity.</p>
+</div>
+<div class="space-y-4">
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-emerald-900 mb-6">Explore</h4>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Treatments</a>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Shop Online</a>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Clinics</a>
+</div>
+<div class="space-y-4">
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-emerald-900 mb-6">Resources</h4>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Medical Disclaimer</a>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Terms of Service</a>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Privacy Policy</a>
+</div>
+<div class="space-y-4">
+<h4 class="font-manrope text-xs font-bold uppercase tracking-widest text-emerald-900 mb-6">Connect</h4>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Contact Us</a>
+<a class="block text-stone-500 hover:underline text-xs transition-all" href="#">Careers</a>
+<p class="text-xs text-stone-400 pt-4 font-manrope leading-relaxed">© 2024 TMC Medical Vietnam. All Rights Reserved.</p>
+</div>
+</div>
+</footer>
+</body></html>

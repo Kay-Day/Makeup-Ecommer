@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-100 dark:border-stone-800 shadow-[0_4px_30px_rgba(79,95,63,0.03)]">
+<div class="flex justify-between items-center h-20 px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold tracking-tighter text-emerald-900 dark:text-emerald-50">TMC Medical</div>
+<div class="hidden md:flex items-center space-x-10 font-manrope font-medium tracking-tight">
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Treatments</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Shop</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Doctors</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Clinics</a>
+<a class="text-emerald-900 dark:text-emerald-400 border-b-2 border-emerald-800 pb-1 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Philosophy</a>
+</div>
+<div class="flex items-center space-x-6">
+<button class="material-symbols-outlined text-emerald-900 dark:text-emerald-50" data-icon="shopping_bag">shopping_bag</button>
+<button class="material-symbols-outlined text-emerald-900 dark:text-emerald-50" data-icon="person">person</button>
+</div>
+</div>
+</nav>
+<main>
+<!-- Hero: Our Philosophy -->
+<section class="pt-40 pb-section-padding px-8 md:px-16 bg-white overflow-hidden">
+<div class="max-w-[1280px] mx-auto grid md:grid-cols-12 gap-gutter items-center">
+<div class="md:col-span-6 space-y-stack-lg">
+<span class="font-label-caps text-label-caps text-primary uppercase tracking-widest">Our Philosophy</span>
+<h1 class="font-h1 text-h1 text-on-surface">Precision in Science, <br/>Elegance in Care.</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                        At TMC Medical Vietnam, we believe that true dermatological excellence lies at the intersection of rigorous clinical standards and the restorative power of a tranquil environment. Our approach is personalized, evidence-based, and deeply rooted in the philosophy of quiet luxury.
+                    </p>
+<div class="pt-4">
+<button class="bg-primary text-on-primary px-8 py-4 rounded-lg font-semibold hover:bg-primary-container transition-all">Discover Our Journey</button>
+</div>
+</div>
+<div class="md:col-span-6 relative">
+<div class="relative z-10 rounded-2xl overflow-hidden aspect-[4/5] shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="A serene, minimalist medical consultation room featuring a clean white aesthetic and olive green accents. Soft morning light streams through large windows, illuminating a sleek marble table and premium leather chairs. The atmosphere is calm, sophisticated, and professional, reflecting high-end hospitality and precise medical care." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZxwdAVeJ5Y5mUnHJtSDYBUQJh_H0nMxsb9DaVFg0QWvt-nsgsB8TjbyhycYibGijkLXLF8ca0HYbgcn1L9S_RQuZUHUEHj2k5SzQUDbpaMz1CByuKUSFCbYx91_QkLvLAblQKlpFBo1EpLjsJTdaGct6Rzama1Cz87iPmcARu9IesdB43vrsZDVVJjvcszbaNMT1Um98FPidvfeQmLNnBgw3d4CoEbGaN9fspY8AzFu4rM3Ev9WMRtWsap19y4lJPvC7mch7Xb4g"/>
+</div>
+<div class="absolute -bottom-12 -left-12 w-64 h-64 bg-secondary-fixed rounded-full -z-0 opacity-50 blur-3xl"></div>
+</div>
+</div>
+</section>
+<!-- Our Standards: Bento Grid -->
+<section class="py-section-padding px-8 md:px-16 bg-surface-container-low">
+<div class="max-w-[1280px] mx-auto">
+<div class="text-center mb-20 space-y-stack-sm">
+<span class="font-label-caps text-label-caps text-primary uppercase">The Foundation</span>
+<h2 class="font-h2 text-h2 text-on-surface">Unwavering Standards</h2>
+</div>
+<div class="grid md:grid-cols-4 grid-rows-2 gap-6 h-auto md:h-[600px]">
+<!-- Safety -->
+<div class="md:col-span-2 md:row-span-2 bg-white p-12 rounded-xl flex flex-col justify-end border border-outline-variant shadow-sm relative overflow-hidden group">
+<div class="absolute top-8 right-8 text-primary/10">
+<span class="material-symbols-outlined !text-9xl" data-icon="verified_user">verified_user</span>
+</div>
+<div class="relative z-10 space-y-4">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="security">security</span>
+<h3 class="font-h3 text-h3">Clinical Safety Protocol</h3>
+<p class="font-body-md text-on-surface-variant">Our facility adheres to the most stringent international hygiene standards, with hospital-grade sterilization and advanced air filtration systems in every treatment suite.</p>
+</div>
+</div>
+<!-- Certifications -->
+<div class="md:col-span-2 bg-primary text-on-primary p-12 rounded-xl flex items-center justify-between group transition-all">
+<div class="space-y-4">
+<h3 class="font-h3 text-h3">Global Certifications</h3>
+<p class="font-body-md opacity-80">Accredited by international dermatological boards and local health ministries for premium surgical and aesthetic procedures.</p>
+</div>
+<div class="hidden lg:block">
+<span class="material-symbols-outlined !text-6xl text-primary-fixed" data-icon="award_star">award_star</span>
+</div>
+</div>
+<!-- Quality Control -->
+<div class="md:col-span-1 bg-secondary-container p-8 rounded-xl space-y-4 flex flex-col justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="biotech">biotech</span>
+<h3 class="font-h3 text-[20px] leading-tight">Advanced Equipment</h3>
+</div>
+<div class="md:col-span-1 bg-white p-8 rounded-xl border border-outline-variant space-y-4 flex flex-col justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="monitoring">monitoring</span>
+<h3 class="font-h3 text-[20px] leading-tight">Continuous Monitoring</h3>
+</div>
+</div>
+</div>
+</section>
+<!-- Meet the Specialists: Clinical Carousel -->
+<section class="py-section-padding px-8 md:px-16 bg-white overflow-hidden">
+<div class="max-w-[1280px] mx-auto">
+<div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+<div class="space-y-stack-sm max-w-xl">
+<span class="font-label-caps text-label-caps text-primary uppercase">Our Expertise</span>
+<h2 class="font-h2 text-h2 text-on-surface">Meet the Visionaries</h2>
+<p class="font-body-md text-on-surface-variant">Our team of world-class dermatologists and aesthetic specialists brings decades of collective experience from top global medical institutions.</p>
+</div>
+<div class="flex space-x-4">
+<button class="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<button class="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="flex overflow-x-auto gap-8 pb-12 snap-x hide-scrollbar">
+<!-- Doctor 1 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start group">
+<div class="aspect-[3/4] rounded-2xl overflow-hidden mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A professional portrait of a female head dermatologist at TMC Medical. She is dressed in a crisp white lab coat, standing against a soft-focus background of a clean, minimalist medical office with warm wood accents. Her expression is confident and caring, illuminated by soft, natural three-point lighting. The overall mood is one of trust and expertise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRpqIcCJYHsKTqQ6oUgubdgZ-r3gvAijNtpDOOR9Cw5sUbO8rCj1_u3sAiVHpsP7dolc4p3INGIyWjG3rbH0kqHsob9RN9hck_CPRazdOoOcUpBucIyns6sib6x03-fgoOoPaqqIWxP-X2BIgwJVyQ8xN6R-ss1Xkvp_T8mLcjLoJjvdNDctVU-B2wB_aztEZ45pVEi_mtoVRpSqc2MIOuVkl94RcP_l1xGKAc47M53a-3EIXShbzQJ00yaKLWaP4WMgw49cW8KJs"/>
+<div class="absolute bottom-6 left-6 right-6 p-6 glass-effect rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<p class="text-on-surface text-sm font-semibold">Specialty: Regenerative Aesthetics</p>
+</div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-1">Dr. Elena Trinh</h3>
+<p class="font-label-caps text-primary">Chief Medical Officer</p>
+</div>
+<!-- Doctor 2 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start group">
+<div class="aspect-[3/4] rounded-2xl overflow-hidden mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A portrait of a male aesthetic surgeon at TMC Medical. He is wearing a tailored navy medical scrub set, standing in a brightly lit, modern hallway of a clinic. The design is minimalist with large glass panels and subtle olive-toned walls. The lighting is bright and airy, emphasizing a high-tech yet welcoming clinical atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNrnwUeVmXyTpUaP7S-t1ls_2akzCyz2yDOfe30PIt2FoOrYTk2rYAq_7leXQXzosGEJTX7AC78_2A_UeIbIbx7msATKV-Hpg_RiQX1qizou52BiXhAUPooM-PktmMgfVijgaJ85Yg5JklcewWQuYFuKMMADTfqbsPiiR3js1y8dFJP4u2dADQQpu_OU5F2q7sgv3YtLosf5ovIYwh5fAmZL_8RAYzhNPTwQWLU6igRcjVm1bIkWw5smfYoRkOvSXtH1nC_hL_a_k"/>
+<div class="absolute bottom-6 left-6 right-6 p-6 glass-effect rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<p class="text-on-surface text-sm font-semibold">Specialty: Surgical Dermatology</p>
+</div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-1">Dr. Marcus Vu</h3>
+<p class="font-label-caps text-primary">Lead Surgical Specialist</p>
+</div>
+<!-- Doctor 3 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start group">
+<div class="aspect-[3/4] rounded-2xl overflow-hidden mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A portrait of a female laser specialist in a minimalist clinical setting at TMC Medical. She is holding a tablet, looking professional and approachable. The background features high-end dermatological equipment and clean white surfaces. Soft, diffused lighting creates a serene and authoritative medical aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBA3O38-LYY9i3L8CYLhAPYKgTSqXPWb5kbyI3kRUkpaXjC9eVsSzWO_6ErPNSm23e0LetGLp3LNxr_msmezOs8VRkQeBd1g-x6ITIZlUg1ylfrlKcB31-UYS1GkhsgAyT82d_thmnf-pt7xLVd7bv2MNxJ_2gb5evTYgajxtwQfBfzKUv190AZHRhfqyP4p6ur0Hh0U5Gyjp71mTCybchiW7HPg_8GhNVJeOsiJM4X2Il9Wy3hI4j35-cC-nVi7W__EZP2BV9RfMQ"/>
+<div class="absolute bottom-6 left-6 right-6 p-6 glass-effect rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<p class="text-on-surface text-sm font-semibold">Specialty: Laser Technology</p>
+</div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-1">Dr. Sophia Nguyen</h3>
+<p class="font-label-caps text-primary">Dermatologist &amp; Laser Expert</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Clinic Space Gallery -->
+<section class="py-section-padding px-8 md:px-16 bg-surface">
+<div class="max-w-[1280px] mx-auto">
+<div class="grid grid-cols-12 gap-gutter">
+<div class="col-span-12 md:col-span-4 space-y-stack-md">
+<span class="font-label-caps text-label-caps text-primary uppercase">The Environment</span>
+<h2 class="font-h2 text-h2 text-on-surface">Designed for Tranquility</h2>
+<p class="font-body-md text-on-surface-variant">Every corner of our clinic has been architecturally designed to reduce cortisol and promote a sense of well-being, ensuring your journey to beauty starts from within.</p>
+<div class="pt-8 grid grid-cols-2 gap-4">
+<div class="bg-white p-6 rounded-lg border border-outline-variant text-center">
+<div class="text-h3 font-h3 text-primary mb-1">12</div>
+<div class="text-[10px] font-label-caps uppercase text-on-surface-variant">Private Suites</div>
+</div>
+<div class="bg-white p-6 rounded-lg border border-outline-variant text-center">
+<div class="text-h3 font-h3 text-primary mb-1">100%</div>
+<div class="text-[10px] font-label-caps uppercase text-on-surface-variant">Sterile Design</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 md:col-span-8 grid grid-cols-2 gap-6">
+<div class="rounded-xl overflow-hidden h-[300px] md:h-full">
+<img class="w-full h-full object-cover" data-alt="A wide-angle view of a luxury medical clinic lobby with a high-end minimalist design. The space features white marble floors, olive green velvet seating, and large architectural pillars. A custom-designed light installation hangs from the high ceiling, casting a warm, inviting glow. The vibe is sophisticated, serene, and clean." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIviMIw0E9o1z_4TfYaTfR1uRAb67hrcJeaivYQG9gbGCqSAeZuIHjcAubeSdOQR1xBf4F4dW5FyXd62F9mkRs7lJGxsY-6vVarFAbuVjPHLZaZBKvoxWi5rQ3rwbsdUner6HmOGZOiFAZ_xlbGYjP479up6enXgwC_AeaHtSxZo5M8GMa6GdnUjvOCtNhRL-56IbfVCSzGvSSUS_OD0GwzGZemRb-wWCLWX2IZNip2zIfs_yHJ23tEv3nNj_sedTYS7Ll_vR3bk4"/>
+</div>
+<div class="grid grid-rows-2 gap-6">
+<div class="rounded-xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A high-tech medical treatment room with state-of-the-art laser machines and ergonomic treatment beds. The room is designed with soft beige walls and minimalist wood shelving containing premium skincare products. The lighting is clinical yet soft, emphasizing precision and cleanliness in a high-end medical environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnuat2FGW79cethyTRF-oqkbgEtZ8W_N0euJnIK_UE_30gylTJ8V0bSLH8k1YOq4Gvugf6tbj3QcMJX3qQDi0jWri4mXLdv1uw10FIISjL-0arBfY8lfWdzH4G_WbTXShjPkrFfusfgL90AX-JKSriZIoDtR0ygERdoYoHFHa0bSLrplTlq5vKJyQr4Fw-KFuTDkM9PWRsoMi9yMgQRC9AC5ecTQllrwN3gTJoYGqdy5FXlemaNk8CUPwFPNLQEVxfhXn6pGgpOmQ"/>
+</div>
+<div class="rounded-xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A close-up of a premium skin consultation station featuring a digital skin analysis device. The setting is clean and bright, with a small vase of eucalyptus adding a touch of organic serenity. Everything is organized and professional, reflecting the meticulous medical standards and premium hospital grade service." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz2uM0Ggh4XoKKLFoRClpaFE39-vX_RKKkVL9rnY0lJ6VL8p43anpvYpYcyGFpVWYq6TXGqHKVNgZM269gZfRl_yBxZgebdz0MufU32jYtC2dgtiZXkUGDpw-bTPdQDXEr3hm6n68gARlVrl_Hyb-YbstNEvHCFzCy2KM9UV5iWDsDv6T8R8_p1D3YjB5BoTUr55XPzG-__kicEkVLAN3Qpi9WzO4_0Sb-K1GzqOlXC06p9tj374oiqu79WuO7BHWWzTm-q3cW5Lw"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-section-padding px-8 md:px-16 bg-primary-container text-on-primary">
+<div class="max-w-[800px] mx-auto text-center space-y-stack-lg">
+<h2 class="font-h1 text-h1">Experience the TMC Standard.</h2>
+<p class="font-body-lg text-on-primary-container">We invite you to schedule a comprehensive consultation with our specialists to begin your personalized dermatological journey.</p>
+<div class="flex flex-col md:flex-row gap-4 justify-center pt-8">
+<button class="bg-white text-primary px-10 py-5 rounded-lg font-bold hover:bg-surface transition-all">Book a Consultation</button>
+<button class="border-2 border-white/30 text-white px-10 py-5 rounded-lg font-bold hover:bg-white/10 transition-all">View All Treatments</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-stone-50 dark:bg-stone-950 w-full py-20 px-8 md:px-16 border-t border-stone-200 dark:border-stone-800">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="col-span-1 md:col-span-1 space-y-6">
+<div class="font-bold text-emerald-900 dark:text-emerald-50 text-xl">TMC Medical</div>
+<p class="text-stone-500 text-xs leading-relaxed max-w-xs">Vietnam's premier destination for medical-grade dermatology and high-end aesthetic care.</p>
+</div>
+<div class="col-span-1">
+<h4 class="font-bold text-emerald-900 mb-4 text-sm">Navigation</h4>
+<ul class="space-y-3 font-manrope text-xs text-stone-500">
+<li><a class="hover:underline transition-all" href="#">Treatments</a></li>
+<li><a class="hover:underline transition-all" href="#">Shop</a></li>
+<li><a class="hover:underline transition-all" href="#">Doctors</a></li>
+<li><a class="hover:underline transition-all" href="#">Clinics</a></li>
+</ul>
+</div>
+<div class="col-span-1">
+<h4 class="font-bold text-emerald-900 mb-4 text-sm">Legal</h4>
+<ul class="space-y-3 font-manrope text-xs text-stone-500">
+<li><a class="hover:underline transition-all" href="#">Privacy Policy</a></li>
+<li><a class="hover:underline transition-all" href="#">Terms of Service</a></li>
+<li><a class="hover:underline transition-all" href="#">Medical Disclaimer</a></li>
+</ul>
+</div>
+<div class="col-span-1">
+<h4 class="font-bold text-emerald-900 mb-4 text-sm">Follow Us</h4>
+<div class="flex space-x-4">
+<span class="material-symbols-outlined text-stone-500 cursor-pointer" data-icon="facebook">social_leaderboard</span>
+<span class="material-symbols-outlined text-stone-500 cursor-pointer" data-icon="photo_camera">photo_camera</span>
+<span class="material-symbols-outlined text-stone-500 cursor-pointer" data-icon="play_circle">play_circle</span>
+</div>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto mt-20 pt-8 border-t border-stone-200 text-center">
+<p class="font-manrope text-xs text-stone-500">© 2024 TMC Medical Vietnam. All Rights Reserved.</p>
+</div>
+</footer>
+</body></html>

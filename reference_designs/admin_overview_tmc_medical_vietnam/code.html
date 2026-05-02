@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 flex flex-col h-full py-6 fixed left-0 top-0 z-40">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white" data-icon="medical_services">medical_services</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-emerald-900 dark:text-emerald-50 leading-tight">TMC Admin</h1>
+<p class="font-manrope text-xs leading-relaxed text-stone-500">Medical Portal</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Dashboard Active -->
+<a class="bg-emerald-900 text-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold scale-95 active:scale-100 transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="calendar_today">calendar_today</span>
+<span>Appointments</span>
+</a>
+<a class="text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="group">group</span>
+<span>Patients</span>
+</a>
+<a class="text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="inventory_2">inventory_2</span>
+<span>Inventory</span>
+</a>
+<a class="text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="payments">payments</span>
+<span>Sales</span>
+</a>
+<a class="text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-manrope text-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<div class="p-4 bg-white border border-stone-200 rounded-xl flex items-center gap-3 shadow-sm">
+<img alt="TMC Admin" class="w-10 h-10 rounded-full object-cover" data-alt="A professional headshot of a female medical director in a minimalist, bright clinic setting. She is wearing a modern, high-quality white lab coat with subtle green stitching. The background consists of soft-focus medical equipment and neutral stone walls. The lighting is bright and airy, emphasizing professional authority and tranquility." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiWrDZphh97FQIgTcGJELZC5Tg9vCxfqjP9AieOnvCLfe82pbcKjtc-kSvuYCyJXirGdEaxYRlGXaCYlbHlEZX-8b97qrlwdlbuq4KZdwtwDnAtrfMxTZ2QzMkQ0vV5H2lGtkBmqc9ZFrr3_hCWWXXJ7QN5tqD8qtbw0y1QCVyXrKziVZR80ox6PzSZfy0lvuXtH0IlThPUUiEntlph0JKgDuE8-Sk4DeCPcLesN1YTv_Os_McqPKK-dztA9-6p-C9Rd2QjuzeeGM"/>
+<div class="overflow-hidden">
+<p class="font-manrope text-sm font-bold text-emerald-900 truncate">Dr. Nguyen Lan</p>
+<p class="font-manrope text-xs text-stone-500 truncate">Medical Director</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="h-20 px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-stone-100">
+<div class="flex-1 max-w-md">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" data-icon="search">search</span>
+<input class="w-full bg-stone-50 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary-container/20 placeholder:text-stone-400 font-manrope" placeholder="Search patients, results, orders..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="relative text-stone-600 hover:text-emerald-900 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+</button>
+<button class="text-stone-600 hover:text-emerald-900 transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-8 w-[1px] bg-stone-200"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-xs font-bold font-label-caps text-stone-400">STATUS</p>
+<p class="text-xs font-bold text-emerald-700">CLINIC OPEN</p>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 max-w-[1440px] mx-auto w-full">
+<!-- KPI Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<div class="bg-white p-6 rounded-2xl border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] group hover:border-emerald-100 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-900">
+<span class="material-symbols-outlined" data-icon="monetization_on">monetization_on</span>
+</div>
+<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12.5%</span>
+</div>
+<p class="text-stone-500 font-label-caps mb-1">Total Sales</p>
+<h2 class="font-h2 text-primary">₫1.240.000</h2>
+</div>
+<div class="bg-white p-6 rounded-2xl border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] group hover:border-emerald-100 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-900">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+</div>
+<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+8.2%</span>
+</div>
+<p class="text-stone-500 font-label-caps mb-1">Active Patients</p>
+<h2 class="font-h2 text-primary">2,842</h2>
+</div>
+<div class="bg-white p-6 rounded-2xl border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] group hover:border-emerald-100 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-900">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+</div>
+<span class="text-xs font-bold text-stone-400 bg-stone-50 px-2 py-1 rounded-full">-2.4%</span>
+</div>
+<p class="text-stone-500 font-label-caps mb-1">Total Orders</p>
+<h2 class="font-h2 text-primary">458</h2>
+</div>
+</div>
+<!-- Charts Area (Bento Grid Style) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+<div class="lg:col-span-2 bg-white p-8 rounded-2xl border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)]">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="font-h3 text-primary">Revenue Growth</h3>
+<p class="text-stone-500 font-body-md">Monthly performance analytics</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-xs font-bold bg-stone-50 text-stone-600 rounded-lg hover:bg-stone-100">Month</button>
+<button class="px-4 py-2 text-xs font-bold bg-primary-container text-white rounded-lg">Year</button>
+</div>
+</div>
+<div class="relative h-64 w-full bg-stone-50 rounded-xl overflow-hidden flex items-end px-4 gap-2">
+<!-- Simulated Chart Bars -->
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[40%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[55%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[45%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[70%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[85%]"></div>
+<div class="flex-1 bg-primary-container rounded-t-lg transition-all h-[95%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[60%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[75%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[50%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[65%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[80%]"></div>
+<div class="flex-1 bg-primary-container/10 rounded-t-lg transition-all hover:bg-primary-container/30 h-[90%]"></div>
+</div>
+<div class="flex justify-between mt-4 px-4 text-[10px] font-bold text-stone-400 font-label-caps">
+<span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span><span>NOV</span><span>DEC</span>
+</div>
+</div>
+<div class="bg-primary-container p-8 rounded-2xl shadow-xl flex flex-col justify-between text-white">
+<div>
+<span class="inline-block px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold tracking-widest uppercase mb-4">Premium Insights</span>
+<h3 class="font-h3 text-white mb-2 leading-tight">Patient Retention is up 14% this quarter.</h3>
+<p class="font-body-md text-white/70">Your most booked treatment remains the <span class="text-white font-semibold">TMC Signature Laser Facial</span>.</p>
+</div>
+<div class="mt-8">
+<button class="w-full py-4 bg-white text-primary rounded-xl font-bold font-manrope text-sm flex items-center justify-center gap-2 hover:bg-emerald-50 transition-colors">
+                                Download Report
+                                <span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Recent Orders Table -->
+<div class="bg-white rounded-2xl border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] overflow-hidden">
+<div class="p-8 flex justify-between items-center border-b border-stone-50">
+<div>
+<h3 class="font-h3 text-primary">Recent Orders</h3>
+<p class="text-stone-500 font-body-md">Latest transactions and prescription fills</p>
+</div>
+<button class="text-primary font-bold text-sm hover:underline">View All Orders</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-stone-50">
+<tr>
+<th class="px-8 py-4 font-label-caps text-stone-400 text-xs">Patient</th>
+<th class="px-8 py-4 font-label-caps text-stone-400 text-xs">Treatment/Product</th>
+<th class="px-8 py-4 font-label-caps text-stone-400 text-xs">Date</th>
+<th class="px-8 py-4 font-label-caps text-stone-400 text-xs">Amount</th>
+<th class="px-8 py-4 font-label-caps text-stone-400 text-xs">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-stone-50">
+<tr class="hover:bg-stone-50/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed text-xs font-bold">LM</div>
+<span class="font-semibold text-sm text-stone-800">Le Minh</span>
+</div>
+</td>
+<td class="px-8 py-5 text-sm text-stone-600">Dermal Fillers - Session A</td>
+<td class="px-8 py-5 text-sm text-stone-600">Oct 24, 2024</td>
+<td class="px-8 py-5 text-sm font-bold text-stone-800">₫4.500.000</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full uppercase">Completed</span>
+</td>
+</tr>
+<tr class="hover:bg-stone-50/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 text-xs font-bold">TV</div>
+<span class="font-semibold text-sm text-stone-800">Tran Van</span>
+</div>
+</td>
+<td class="px-8 py-5 text-sm text-stone-600">TMC Cleansing Gel (200ml)</td>
+<td class="px-8 py-5 text-sm text-stone-600">Oct 24, 2024</td>
+<td class="px-8 py-5 text-sm font-bold text-stone-800">₫850.000</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-stone-100 text-stone-500 text-[10px] font-bold rounded-full uppercase">Shipped</span>
+</td>
+</tr>
+<tr class="hover:bg-stone-50/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed text-xs font-bold">NH</div>
+<span class="font-semibold text-sm text-stone-800">Nguyen Hoang</span>
+</div>
+</td>
+<td class="px-8 py-5 text-sm text-stone-600">HydraFacial Consultation</td>
+<td class="px-8 py-5 text-sm text-stone-600">Oct 23, 2024</td>
+<td class="px-8 py-5 text-sm font-bold text-stone-800">₫1.200.000</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full uppercase">Completed</span>
+</td>
+</tr>
+<tr class="hover:bg-stone-50/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed-dim flex items-center justify-center text-on-secondary-fixed-variant text-xs font-bold">PA</div>
+<span class="font-semibold text-sm text-stone-800">Pham Anh</span>
+</div>
+</td>
+<td class="px-8 py-5 text-sm text-stone-600">Post-Op Recovery Kit</td>
+<td class="px-8 py-5 text-sm text-stone-600">Oct 23, 2024</td>
+<td class="px-8 py-5 text-sm font-bold text-stone-800">₫3.100.000</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full uppercase">Processing</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="mt-auto w-full py-12 px-8 bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="md:col-span-2">
+<h4 class="font-bold text-emerald-900 dark:text-emerald-50 mb-4">TMC Medical Vietnam</h4>
+<p class="font-manrope text-xs leading-relaxed text-stone-500 max-w-sm">Premium dermatological care and medical aesthetics. Providing a tranquil healing environment through minimalist design and clinical excellence.</p>
+</div>
+<div>
+<h4 class="font-bold text-emerald-900 dark:text-emerald-50 mb-4">Quick Links</h4>
+<ul class="space-y-2">
+<li><a class="font-manrope text-xs text-stone-500 hover:underline transition-all" href="#">Medical Disclaimer</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline transition-all" href="#">Privacy Policy</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline transition-all" href="#">Support Portal</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-emerald-900 dark:text-emerald-50 mb-4">System</h4>
+<p class="font-manrope text-xs text-stone-500">Version 2.4.0-Stable</p>
+<p class="font-manrope text-xs text-stone-500">© 2024 TMC Medical Vietnam. All Rights Reserved.</p>
+</div>
+</div>
+</footer>
+</main>
+</div>
+<!-- FAB for Quick Appointment (Mobile Context Only - suppressed for Admin Dash) -->
+</body></html>

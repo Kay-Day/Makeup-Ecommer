@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>Checkout | TMC Medical</title>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { background-color: #fafaf3; }
+        .checkout-step-active { background-color: #384729; color: white; }
+        .checkout-step-inactive { background-color: #e8e9e2; color: #45483f; }
+        .soft-elevation { box-shadow: 0 4px 30px rgba(79, 95, 63, 0.05); }
+    </style>
+</head>
+<body class="font-body-md text-on-background selection:bg-primary-fixed">
+<!-- Minimal Header -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-stone-100">
+<div class="flex justify-between items-center h-20 px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold tracking-tighter text-emerald-900">
+                TMC Medical
+            </div>
+<div class="flex items-center gap-4 text-stone-500 font-medium text-sm">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+<span>Secure Checkout</span>
+</div>
+</div>
+</header>
+<main class="pt-32 pb-24 px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+<!-- Left Column: Checkout Form Journey -->
+<div class="lg:col-span-7 space-y-12">
+<!-- Progress Stepper -->
+<div class="flex items-center space-x-4 mb-12">
+<div class="flex items-center gap-2">
+<span class="checkout-step-active w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+<span class="font-label-caps text-on-surface">SHIPPING</span>
+</div>
+<div class="h-px w-12 bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="checkout-step-inactive w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+<span class="font-label-caps text-outline">PAYMENT</span>
+</div>
+<div class="h-px w-12 bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="checkout-step-inactive w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+<span class="font-label-caps text-outline">REVIEW</span>
+</div>
+</div>
+<!-- Shipping Form Section -->
+<section class="bg-white p-8 rounded-xl border border-secondary-fixed soft-elevation">
+<h2 class="font-h2 text-h2 mb-8 text-primary">Shipping Information</h2>
+<form class="space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">FIRST NAME</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="Thanh" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">LAST NAME</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="Nguyen" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">DELIVERY ADDRESS</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="123 Le Loi Street, District 1" type="text"/>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">CITY</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="Ho Chi Minh" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">POSTAL CODE</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="700000" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-[10px] text-outline">PHONE</label>
+<input class="w-full px-4 py-3 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-body-md transition-all" placeholder="+84 901 234 567" type="tel"/>
+</div>
+</div>
+</form>
+</section>
+<!-- Collapsed Payment Section -->
+<section class="bg-surface-container-low p-8 rounded-xl border border-stone-200 opacity-60">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline">payments</span>
+<h2 class="font-h3 text-h3 text-outline">Payment Method</h2>
+</div>
+<span class="text-xs font-bold text-outline">STEP 2</span>
+</div>
+</section>
+<!-- Collapsed Review Section -->
+<section class="bg-surface-container-low p-8 rounded-xl border border-stone-200 opacity-60">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline">verified</span>
+<h2 class="font-h3 text-h3 text-outline">Order Review</h2>
+</div>
+<span class="text-xs font-bold text-outline">STEP 3</span>
+</div>
+</section>
+</div>
+<!-- Right Column: Order Summary -->
+<aside class="lg:col-span-5 sticky top-32">
+<div class="bg-white p-8 rounded-xl border border-secondary-fixed soft-elevation space-y-8">
+<h3 class="font-h3 text-h3 text-primary">Order Summary</h3>
+<!-- Order Items -->
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="w-20 h-20 bg-surface-container rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A premium, clinical-grade skin serum bottle placed on a minimalist stone pedestal. The lighting is soft and natural, emphasizing the clean glass texture and the soothing olive green tones of the brand. The setting is a bright, airy medical spa environment with hints of eucalyptus leaves in the background, creating a high-trust professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArCRCdoYt-pcRtgeOprhJP-883iSBN3ltbJ8owOVXZkVz-TKyNwXuWXvtXdP8SjiC-aqFMZMihIu6TTUBjr_hJ1Q9A7awOY0YBHUjTOmIuIT1J-P_6iCZC2TdQuvJM-nzx9f4g-BclAAFrRwBWpComLKYoomL-zT3_1u-a9iaTr0IiYc4plnAJWGxJx-A8_ZhcUhGMK6WF1zB9imNsfVocJuMZMf5dPWnDBhVm50MMFTRkWeEiGOjAXyn0eWqbCKZ077wHZ0CdBs0"/>
+</div>
+<div class="flex-grow">
+<h4 class="font-body-lg font-bold text-on-surface">Advanced Rejuvenation Serum</h4>
+<p class="text-sm text-stone-500">50ml • Botanical Extract</p>
+<div class="flex justify-between mt-2">
+<span class="text-sm font-medium">Qty: 1</span>
+<span class="font-bold text-primary">1,250,000 ₫</span>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-20 h-20 bg-surface-container rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A luxurious minimalist skincare cream jar sitting on a pristine white marble surface. The scene is bathed in bright, diffused daylight that creates very soft shadows, echoing the Apple-style minimalist aesthetic. The color palette is composed of soft whites, warm beiges, and muted olive greens, conveying a sense of serene, quiet luxury and dermatological expertise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw07wxKBybUNveme1pLsob8Yem_VJyg4HtjdOlpw8IUjI-mIs7igOatalylJbTxJ7CxkwCTun_z188ZWasdp8hvFfVQobrC_zS3mFJnSzROBVb4G0QCCsGY9rvb_7_gLmqVTpoEyMpZMifOzQzjo55LSfQpL_3CU3LGMgJ47owm7gDSMPDyhFVKqj4UDgqYaHSxPaeHpIjlfIe-Ytz0bXOFxBP8uO4OQ5qt0yD5m1h0mukTarPc6CtKbRcPVEeuW6yt0rCuzP4h7U"/>
+</div>
+<div class="flex-grow">
+<h4 class="font-body-lg font-bold text-on-surface">SPF 50+ Mineral Shield</h4>
+<p class="text-sm text-stone-500">100ml • Clinical Care</p>
+<div class="flex justify-between mt-2">
+<span class="text-sm font-medium">Qty: 2</span>
+<span class="font-bold text-primary">1,900,000 ₫</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Divider -->
+<div class="h-px bg-stone-100"></div>
+<!-- Totals -->
+<div class="space-y-3">
+<div class="flex justify-between text-body-md">
+<span class="text-stone-500">Subtotal</span>
+<span class="text-on-surface">3,150,000 ₫</span>
+</div>
+<div class="flex justify-between text-body-md">
+<span class="text-stone-500">Shipping</span>
+<span class="text-emerald-700 font-medium">Free</span>
+</div>
+<div class="flex justify-between text-body-md">
+<span class="text-stone-500">VAT (8%)</span>
+<span class="text-on-surface">252,000 ₫</span>
+</div>
+<div class="pt-4 flex justify-between items-end border-t border-stone-100 mt-4">
+<span class="font-h3 text-primary">Total</span>
+<span class="font-h2 text-primary">3,402,000 ₫</span>
+</div>
+</div>
+<!-- Promo Code -->
+<div class="pt-2">
+<div class="flex gap-2">
+<input class="flex-grow px-4 py-2 rounded-lg border-stone-200 focus:border-primary focus:ring-0 text-sm" placeholder="Promo Code" type="text"/>
+<button class="px-6 py-2 border border-primary text-primary font-bold rounded-lg text-sm hover:bg-primary-container hover:text-white transition-all">Apply</button>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full bg-primary-container text-white font-bold py-5 rounded-xl text-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-primary/10">
+                        Complete Secure Payment
+                    </button>
+<!-- Trust Signals -->
+<div class="flex flex-col items-center gap-4 pt-4">
+<div class="flex gap-6 opacity-40 grayscale">
+<span class="material-symbols-outlined text-4xl">credit_card</span>
+<span class="material-symbols-outlined text-4xl">account_balance</span>
+<span class="material-symbols-outlined text-4xl">contactless</span>
+</div>
+<p class="text-[11px] text-stone-400 text-center font-medium leading-relaxed">
+                            Your payment information is processed securely. We do not store credit card details nor have access to your credit card information.
+                        </p>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-20 px-8 md:px-16 border-t border-stone-200 bg-stone-50">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1440px] mx-auto">
+<div class="space-y-6">
+<div class="font-bold text-emerald-900 text-lg">TMC Medical</div>
+<p class="font-manrope text-xs text-stone-500 leading-relaxed max-w-xs">
+                    Vietnam's premier dermatological center blending medical precision with luxury hospitality. 
+                </p>
+</div>
+<div>
+<h5 class="font-label-caps text-primary mb-6">POLICIES</h5>
+<ul class="space-y-3">
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Privacy Policy</a></li>
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Terms of Service</a></li>
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Medical Disclaimer</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label-caps text-primary mb-6">RESOURCES</h5>
+<ul class="space-y-3">
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Contact Us</a></li>
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Careers</a></li>
+<li><a class="text-stone-500 hover:underline text-xs transition-all" href="#">Help Center</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label-caps text-primary mb-6">CERTIFIED</h5>
+<div class="flex items-center gap-4 opacity-50">
+<span class="material-symbols-outlined text-3xl">verified_user</span>
+<span class="material-symbols-outlined text-3xl">medical_services</span>
+</div>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto mt-16 pt-8 border-t border-stone-200 text-center">
+<p class="font-manrope text-xs text-stone-400">© 2024 TMC Medical Vietnam. All Rights Reserved.</p>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shop | TMC Medical Vietnam</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #fafaf3;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#4f5f3f",
+                      "on-surface": "#1a1c18",
+                      "on-tertiary": "#ffffff",
+                      "on-surface-variant": "#45483f",
+                      "surface-container-lowest": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "primary": "#384729",
+                      "secondary-fixed": "#ece1d0",
+                      "surface-container-high": "#e8e9e2",
+                      "on-error-container": "#93000a",
+                      "surface-container-highest": "#e3e3dc",
+                      "on-secondary-fixed-variant": "#4d4639",
+                      "on-primary-fixed-variant": "#3c4b2d",
+                      "outline": "#75786e",
+                      "on-error": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed": "#e3e2e0",
+                      "surface-dim": "#dadad4",
+                      "surface-variant": "#e3e3dc",
+                      "outline-variant": "#c5c8bc",
+                      "inverse-on-surface": "#f1f1ea",
+                      "surface-container": "#eeeee7",
+                      "on-tertiary-fixed-variant": "#464746",
+                      "secondary-fixed-dim": "#d0c5b5",
+                      "primary-fixed": "#d6e9c0",
+                      "tertiary": "#424342",
+                      "surface": "#fafaf3",
+                      "on-tertiary-container": "#d2d1d0",
+                      "on-secondary-fixed": "#201b11",
+                      "surface-bright": "#fafaf3",
+                      "surface-tint": "#536343",
+                      "secondary-container": "#e9decd",
+                      "tertiary-container": "#595a59",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#bacda5",
+                      "on-tertiary-fixed": "#1a1c1b",
+                      "on-primary-container": "#c6d8b0",
+                      "inverse-surface": "#2f312d",
+                      "on-primary-fixed": "#121f06",
+                      "tertiary-fixed-dim": "#c7c6c5",
+                      "background": "#fafaf3",
+                      "on-background": "#1a1c18",
+                      "on-primary": "#ffffff",
+                      "secondary": "#655d50",
+                      "inverse-primary": "#bacda5",
+                      "surface-container-low": "#f4f4ed",
+                      "on-secondary-container": "#696254"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "16px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "20px",
+                      "gutter": "24px",
+                      "stack-lg": "32px",
+                      "unit": "8px",
+                      "container-max": "1280px",
+                      "section-padding": "120px"
+              },
+              "fontFamily": {
+                      "h1": ["Manrope"],
+                      "label-caps": ["Manrope"],
+                      "h3": ["Manrope"],
+                      "body-md": ["Manrope"],
+                      "body-lg": ["Manrope"],
+                      "h2": ["Manrope"]
+              },
+              "fontSize": {
+                      "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                      "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                      "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-100 dark:border-stone-800 shadow-[0_4px_30px_rgba(79,95,63,0.03)]">
+<div class="flex justify-between items-center h-20 px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold tracking-tighter text-emerald-900 dark:text-emerald-50 font-h1">TMC Medical</div>
+<div class="hidden lg:flex items-center space-x-8 font-manrope font-medium tracking-tight">
+<a class="text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Treatments</a>
+<a class="text-emerald-900 border-b-2 border-emerald-800 pb-1 transition-colors duration-300" href="#">Shop</a>
+<a class="text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Doctors</a>
+<a class="text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Clinics</a>
+<a class="text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Philosophy</a>
+</div>
+<div class="flex items-center space-x-6">
+<div class="hidden md:flex items-center bg-stone-100/50 rounded-full px-4 py-2 border border-stone-200">
+<span class="material-symbols-outlined text-stone-400 text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm font-manrope text-on-surface placeholder:text-stone-400 w-32" placeholder="Search products..." type="text"/>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-stone-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</button>
+<button class="text-stone-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</button>
+</div>
+</div>
+</div>
+</nav>
+<main class="pt-20">
+<!-- Hero Section -->
+<section class="relative h-[400px] flex items-center overflow-hidden bg-surface-container-low">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-80 mix-blend-multiply" data-alt="A clean and bright clinical laboratory environment with soft, high-key lighting. The scene features minimalist glass bottles of high-end skincare serums arranged on a pristine white marble surface. The overall atmosphere is airy, serene, and professional, utilizing a palette of soft whites, pale olives, and warm stone tones to evoke a sense of quiet luxury and medical precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzyTs3pK8nsYQL4GC6pb1suUfdkbhxBB6cCe9j7CJB7eWNkc-fzlYdGYFY1pX6mBYsTlsPOfoWzCmEM9If1jDPFibICEbxRz4NJ-_kjqkw8N04EzieEx6QnbBtRW3nQE3gJJ_jH2yFg8N3bmnWXZMwbxyAqCMeHsKOjZRX7Rnfc9p-jJgVUVv6J7zwHiEKxM2BdYmq1gZt9e7SLLZqscz8HOzsHhB0BfWEk4cVjjF9qDHUMjwVHBPW0IUUAV4pyveOZBWxcPfzSP4"/>
+</div>
+<div class="relative z-10 max-w-[1440px] mx-auto px-8 md:px-16 w-full">
+<div class="max-w-2xl">
+<span class="font-label-caps text-primary uppercase tracking-widest block mb-4">Dermatologist Recommended</span>
+<h1 class="font-h1 text-h1 text-primary mb-6">Advanced Medical Skincare</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg">
+                        Scientifically proven formulations curated by TMC medical experts for professional results at home.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Product Listing Area -->
+<div class="max-w-[1440px] mx-auto px-8 md:px-16 py-20 flex flex-col md:flex-row gap-16">
+<!-- Sidebar Filter -->
+<aside class="w-full md:w-64 flex-shrink-0">
+<div class="sticky top-32 space-y-12">
+<div>
+<h3 class="font-h3 text-lg mb-6 text-primary">Skin Type</h3>
+<div class="space-y-4">
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Oily &amp; Combination</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Dry &amp; Sensitive</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input checked="" class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Mature Skin</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">All Skin Types</span>
+</label>
+</div>
+</div>
+<div>
+<h3 class="font-h3 text-lg mb-6 text-primary">Concern</h3>
+<div class="space-y-4">
+<label class="flex items-center group cursor-pointer">
+<input checked="" class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Anti-Aging</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Pigmentation</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Acne &amp; Pore Control</span>
+</label>
+<label class="flex items-center group cursor-pointer">
+<input class="w-4 h-4 border-outline rounded text-primary focus:ring-primary-container" type="checkbox"/>
+<span class="ml-3 font-body-md text-on-surface-variant group-hover:text-primary transition-colors">Hydration</span>
+</label>
+</div>
+</div>
+<div>
+<h3 class="font-h3 text-lg mb-6 text-primary">Price Range</h3>
+<div class="px-2">
+<input class="w-full h-1 bg-secondary-fixed rounded-lg appearance-none cursor-pointer accent-primary" type="range"/>
+<div class="flex justify-between mt-4 text-sm font-label-caps text-on-surface-variant">
+<span>500k VNĐ</span>
+<span>5M+ VNĐ</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Product Grid -->
+<div class="flex-grow">
+<div class="flex justify-between items-end mb-12">
+<p class="font-body-md text-on-surface-variant">Showing 24 products</p>
+<div class="flex items-center space-x-2 border-b border-stone-200 pb-1 cursor-pointer">
+<span class="font-label-caps text-on-surface">Sort by: Featured</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-gutter gap-y-16">
+<!-- Product Card 1 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A minimalist white pump bottle of facial cleanser placed on a soft tan background with sharp geometric shadows. The lighting is bright and architectural, highlighting the clean lines of the packaging. The scene uses a sophisticated palette of cream, white, and deep olive to convey a premium, medical-grade skincare product aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKqweMNOyesBrIEnQGvk8i9_MJkRf-VjXML_2kpDdZamvw_dkdjz2U51uwLKuT9x7DMW0G5gImIh93DooYHvRX142lVWr2haWWxxypUWtvqX5FMzj_YovDa59laQbxghEQQZjsF2spmhZ7iLc3DlA5qiiljWmFXBf8tQSs9sMAUHdeRaYKC32J-HiA24VLoOee-HOgAULZdZzM8vnHX8LEiG7sAleBECvbb6QaQbUCQwfU_o9Sr-F65ETPr7Ua92xghCWoentv3Mc"/>
+<div class="absolute top-4 left-4">
+<span class="bg-secondary-fixed text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-label-caps tracking-widest">BEST SELLER</span>
+</div>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Hydrating Gentle Cleanser</h4>
+<p class="text-xs font-label-caps text-stone-400">AM/PM • DRY SKIN</p>
+<p class="font-body-md font-bold text-on-surface">1,250,000 VNĐ</p>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A luxurious glass serum dropper bottle standing against a minimalist beige backdrop. High-contrast, clean studio lighting creates soft gradients across the glass surface. The design is elegant and sparse, focusing on the clarity of the product and the premium medical nature of the brand's aesthetic using warm stone and cool white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIv9RGKr1HGraiOzjBlKsJFdNBM3i6e4hx9Nv2Uu5U0affRpol6iJprLZQqkizZxwoLKKfmiQN0nF8OLGCAFbSx6muBEPMdQz8pJqBiWQpCZLcUPe9hQ4EKa-MpYNPS_APwJd_fwkTGzi37CO6cd7FR8gsAwNgSKBD6ZRgzhmtnXLtzR53ErgOlaj_3dWDx-6PFXYPu2qLygG8326e6Vv0TVNenAXSsJGZIG2UB5-FhKLFdSpbkkK8G-qNFoGTv5UQX2C3SRMeu-g"/>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Vitamin C Glow Serum</h4>
+<p class="text-xs font-label-caps text-stone-400">AM • ALL SKIN TYPES</p>
+<p class="font-body-md font-bold text-on-surface">2,800,000 VNĐ</p>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A sleek, matte finish jar of facial cream sitting on a textured stone surface under bright morning sunlight. The lighting is natural and airy, casting soft long shadows. The overall composition is minimalist and high-end, featuring a color palette of ivory, light grey, and deep natural greens to emphasize biological purity and medical efficacy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyuIxxPal8OXN7lEb39D6bhXrNruhOxHP1eZLU46c6D4tnnbuepNEMaVM6ZCtjDq3HxGj5Mu9ct6xc0rBFHJvg1rfpKSYKRTG8z7kBsLUOxhEl0BaE0XlU-uTpwNvv59c_Gq4AscXuIKlWZv2mvL6XQLLuTldfb4RUEdBFkiDhWGQN5d4ruQ4vVxbms2tvpFXxR-G6vq1KgVn2Gfu180YrthOAz7J9TGhXl5SqDqB6bHJPQNdm86dGOCLasoStvwSYbbUdBGoaUbI"/>
+<div class="absolute top-4 left-4">
+<span class="bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full text-[10px] font-label-caps tracking-widest">NEW IN</span>
+</div>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Retinol 0.5% Renewal Cream</h4>
+<p class="text-xs font-label-caps text-stone-400">PM • MATURE SKIN</p>
+<p class="font-body-md font-bold text-on-surface">3,450,000 VNĐ</p>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Two minimalist skincare containers, a tube and a bottle, arranged elegantly on a clean white surface with soft reflective properties. The lighting is diffused and bright, creating an professional medical look. The brand's signature olive green accents are present in the minimal label design, reinforcing a clean, airy, and trustworthy clinical aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8jXqs_ee9HHNmtADpeL5vQGARnwo_Rq1nuQrMv71X8WpSLXI4IJx85-kKCB43GZPzE9M4IZ34CFH5TlYL0jpG_vCXjGvGG8hCjAm99gWozCbwMYo45aJHKz03FWQTQKPVMUM8E6Hk6NkToWVWgzxka1SDKrz_yQXUDVKNZvl-yLAxBsmq0WPcCfR27HP25TkaWIQTwj1a5hf-Q9p1nA7ue3wC2E0kH9mL137zaYx_vuI4L52EdcTUqpZJ8uZOwH5_QfaWfaYWsXM"/>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Broad Spectrum Sunscreen SPF 50</h4>
+<p class="text-xs font-label-caps text-stone-400">AM • ALL SKIN TYPES</p>
+<p class="font-body-md font-bold text-on-surface">950,000 VNĐ</p>
+</div>
+</div>
+<!-- Product Card 5 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A clear glass bottle with a minimalist label containing a crystal-clear liquid. The bottle sits on a frosted glass platform with high-key lighting that makes the water-like product appear to glow. The scene is incredibly clean and clinical, using a palette of pure whites and very subtle translucent tones to evoke extreme purity and medical precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5ZU7CkCo2s6bUKtFNtPesb2_u2ICC2UxY4lARQwV7R21v70jdu6FzwgSx4htr442wdK13MhGuQ7XJQOlMYsHKjpk_39uUW3ylh9eDZolqylBMqrhObtiAQxjW5fc6Vqgt74bKUqkI4OxubFWkr-iy2_xQcJUE-FslyDbga43piVVyeWVxpF_AMSEtF3MnNOzGy9EaYCfzorzDMxeAAbfVsqustsb8VCJ6nMU4qLoMPFsTuVKSvGPMMty5p3Hd26uXhzEFQN8aYiE"/>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Hyaluronic Acid Booster</h4>
+<p class="text-xs font-label-caps text-stone-400">AM/PM • DEHYDRATED SKIN</p>
+<p class="font-body-md font-bold text-on-surface">2,100,000 VNĐ</p>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="group">
+<div class="aspect-[4/5] bg-white rounded-xl overflow-hidden mb-6 relative border border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] transition-transform duration-500 hover:-translate-y-2">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="High-end skincare products arranged in an asymmetric, artistic layout on a light oak wooden shelf. The lighting is soft and natural, coming from a side window. The overall look is professional yet approachable, combining natural textures with clinical product design in a palette of warm wood, soft cream, and deep pine green." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1gIdfDGcdSUuRhD2hN84sBHNXrWiPbIWAMqEk0LnQt6oQawN-0UYW7NH-V3GKHci8Z4Aurk0LZ1mOyeofKG3-UT8Vo-CXlD3gtr2Deckp0PFs_ikPq70z2bMTsT1w3iQ7IZG_17njfjSF3B8CMvSHwJHsVqnFoGk5Vav2ww-N1qRbXNYluAMLtQfw7PumBkbcRxLeURbK2_Gv1iYpyamn9h3Q6s2ijMfRIs7Db4hLc-_BFC27VoDG36cBVuDBScmx-XSJrHrrPZE"/>
+<button class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-8 py-3 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-label-caps shadow-lg">
+                                QUICK ADD
+                            </button>
+</div>
+<div class="space-y-2">
+<h4 class="font-h3 text-base text-primary">Post-Procedure Recovery Mask</h4>
+<p class="text-xs font-label-caps text-stone-400">WEEKLY • SENSITIVE SKIN</p>
+<p class="font-body-md font-bold text-on-surface">1,800,000 VNĐ</p>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="mt-20 flex justify-center items-center space-x-4">
+<button class="w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-full font-label-caps">1</button>
+<button class="w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full hover:bg-stone-100 font-label-caps">2</button>
+<button class="w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full hover:bg-stone-100 font-label-caps">3</button>
+<button class="w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<footer class="bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800 w-full py-20 px-8 md:px-16">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1440px] mx-auto">
+<div class="space-y-6">
+<div class="font-bold text-emerald-900 dark:text-emerald-50 text-xl font-h1">TMC Medical</div>
+<p class="font-manrope text-xs leading-relaxed text-stone-500 max-w-xs">
+                    Leading dermatological clinic in Vietnam providing world-class medical aesthetics and professional skincare solutions.
+                </p>
+<div class="flex space-x-4">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">public</span>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">favorite</span>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">share</span>
+</div>
+</div>
+<div>
+<h4 class="font-h3 text-sm mb-6 text-emerald-900 dark:text-emerald-50">Quick Links</h4>
+<ul class="space-y-4 font-manrope text-xs text-stone-500">
+<li><a class="hover:underline transition-all" href="#">About Us</a></li>
+<li><a class="hover:underline transition-all" href="#">Treatments</a></li>
+<li><a class="hover:underline transition-all font-bold text-emerald-900" href="#">Shop</a></li>
+<li><a class="hover:underline transition-all" href="#">Clinics</a></li>
+<li><a class="hover:underline transition-all" href="#">Doctor Profiles</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-h3 text-sm mb-6 text-emerald-900 dark:text-emerald-50">Information</h4>
+<ul class="space-y-4 font-manrope text-xs text-stone-500">
+<li><a class="hover:underline transition-all" href="#">Privacy Policy</a></li>
+<li><a class="hover:underline transition-all" href="#">Terms of Service</a></li>
+<li><a class="hover:underline transition-all" href="#">Medical Disclaimer</a></li>
+<li><a class="hover:underline transition-all" href="#">Contact Us</a></li>
+<li><a class="hover:underline transition-all" href="#">Careers</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-h3 text-sm mb-6 text-emerald-900 dark:text-emerald-50">Contact</h4>
+<p class="font-manrope text-xs text-stone-500 leading-relaxed mb-4">
+                    District 1, Ho Chi Minh City, Vietnam<br/>
+                    Tel: +84 (0) 28 3824 1234<br/>
+                    Email: info@tmcmedical.vn
+                </p>
+<div class="mt-6 p-4 border border-stone-200 rounded-lg">
+<p class="text-[10px] font-label-caps text-stone-400 mb-2">NEWSLETTER</p>
+<div class="flex">
+<input class="bg-transparent border-none p-0 text-xs focus:ring-0 w-full placeholder:text-stone-300" placeholder="Email address" type="email"/>
+<button class="text-primary hover:translate-x-1 transition-transform">
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto mt-20 pt-8 border-t border-stone-200 dark:border-stone-800">
+<p class="font-manrope text-xs text-stone-500 text-center">
+                © 2024 TMC Medical Vietnam. All Rights Reserved.
+            </p>
+</div>
+</footer>
+</body></html>

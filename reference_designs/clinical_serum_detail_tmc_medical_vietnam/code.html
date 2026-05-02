@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            scroll-behavior: smooth;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-100 dark:border-stone-800 shadow-[0_4px_30px_rgba(79,95,63,0.03)]">
+<div class="flex justify-between items-center h-20 px-8 md:px-16 max-w-[1440px] mx-auto">
+<span class="text-xl font-bold tracking-tighter text-emerald-900 dark:text-emerald-50">TMC Medical</span>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Treatments</a>
+<a class="font-manrope font-medium tracking-tight text-emerald-900 dark:text-emerald-400 border-b-2 border-emerald-800 pb-1" href="#">Shop</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Doctors</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Clinics</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Philosophy</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-emerald-900 cursor-pointer" data-icon="shopping_bag">shopping_bag</span>
+<span class="material-symbols-outlined text-emerald-900 cursor-pointer" data-icon="person">person</span>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-section-padding px-8 md:px-16 max-w-[1440px] mx-auto">
+<!-- Breadcrumb -->
+<nav class="flex gap-2 text-label-caps font-label-caps text-on-surface-variant mb-stack-lg">
+<span>SHOP</span>
+<span>/</span>
+<span>SERUMS</span>
+<span>/</span>
+<span class="text-primary font-bold">LUMINESCENT MULTI-PEPTIDE</span>
+</nav>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-16">
+<!-- Left Column: Gallery -->
+<div class="lg:col-span-7">
+<div class="flex flex-col md:flex-row gap-4">
+<!-- Thumbnails -->
+<div class="flex flex-row md:flex-col gap-4 order-2 md:order-1">
+<div class="w-20 h-20 bg-white border border-secondary-fixed rounded-lg overflow-hidden cursor-pointer hover:border-primary transition-all">
+<img class="w-full h-full object-cover" data-alt="A macro close-up of a premium clinical glass serum bottle with an olive green dropper cap, resting on a clean white marble surface. The lighting is bright and airy, emphasizing the luxury minimalist aesthetic of TMC Medical's brand colors. The setting is a professional dermatological clinic with soft, diffused daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOU6HHqBlVm93fExb6HHuua8iY3Ma13huMKUkUOur1EedgHyMcV0tHmgWxrbjqYD4BhdPInxSEX9QwzFYYNMnQLBFyKZaugWfoo8SHXeLcSDsq09uLMX3NA1mR9iXbkzai9b0XkmnJ-9dc_pzAtGVQQMKSQgpnXyYZBb7fPuc1cYXad84nZQk2oYdK5AyMElTbRxF2UIqCMgdTFeQ3LZ4425ywHv-PBBH58cPba43-5lx8yZ6DCGDUirsTtZXoOQWxsNWSsgplVBI"/>
+</div>
+<div class="w-20 h-20 bg-white border border-secondary-fixed rounded-lg overflow-hidden cursor-pointer opacity-60">
+<img class="w-full h-full object-cover" data-alt="The clear, viscous texture of a dermatological serum being dispensed from a glass pipette. Tiny oxygen bubbles are visible within the liquid, highlighting the purity and scientific formulation. The background is a soft beige linen texture, conveying a sense of premium hospitality and tranquility." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgoqFanla83OO3LVp2snmVe_GuFp3QPBeMO5iUVYRcn7J8CilITpHkBP7XjSf4Z6WN31tEFWnuxv1RrWvONeJ47N2r7EsqM8JaxdP5YIOU9IoAu017zRH6sQcRpJkY8Im-7bxciSkc8TUYSQRIHvDFPeT-VfLMg5G_A1_W8nFn5nBeHfhDXpHFzsztNG5rV2KrjLlucXcWn-JIOVTf6Uvl2OKGatsOjn7mbyPpPvIgyfyIMca3TuwbMW-ZdZqB3fXKFoFLeHXb0dU"/>
+</div>
+<div class="w-20 h-20 bg-white border border-secondary-fixed rounded-lg overflow-hidden cursor-pointer opacity-60">
+<img class="w-full h-full object-cover" data-alt="A clinical lifestyle shot of a woman with radiant skin applying a clear serum to her cheekbone in a sunlit, minimalist bathroom. The scene uses TMC Medical's palette of soft greens and warm neutrals. The atmosphere is serene and high-end, focusing on professional dermatological results." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUn4XwXpJsJtpIRBpCNifw3K3aoifvcjyyzN05GunMiW605xh6KCZh1p7dMs7cqv36--09dbIr5ktHOatMD2bMF49EYfP0d4-B2wDSQiyTm09omF3HCG0FlmNVhzBIdMh8rIhA2S1k8QWN6yMPpaCRjM0OnNCjbhbSVbWJLXjlkFWr-uNxRWwm9hNtmpGpu9XsjGmuqVohb1nBbl-iKNN4ZTrrHLDPilOOJ4isp2MHvsP2lu3VJXuhgKV2N2QhWlIvKIcdJDLnvnU"/>
+</div>
+</div>
+<!-- Main Image with "Zoom" Effect Shell -->
+<div class="flex-1 order-1 md:order-2">
+<div class="relative aspect-[4/5] bg-white rounded-xl overflow-hidden shadow-[0_30px_50px_rgba(79,95,63,0.05)] border border-secondary-fixed/50 group">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A high-resolution product shot of the Luminescent Multi-Peptide serum by TMC Medical. The bottle is elegant frosted glass with a dark olive green cap. It is positioned asymmetrically in a bright, minimalist studio setting with soft shadows that evoke a sense of quiet luxury and clinical precision. The lighting is high-key and pristine." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5RqcsmhH85DURh25m7PPMzyh8iqFrxp-VRaDClh7Vo2IYGjOoZIF2oDrpQ-pdXielK7NKl4DI7Do5K1dZTeRdMa0y4c8EJBpEpRXoImJriPOhvZDRsQ_FxWWsj-adko5yYVlMkjvtA-Z6WEYhJ3AuG5_npui2n7OJUV7l4iTVs1QJ5AT7qi0XK923t-g_grKmglXuEhhxrXF_MYhCXxdMXYlNofzWeG7noPPwRzvO_ga_pVgTS3-t-ne5c36E7camLx4_JhgxSyo"/>
+<div class="absolute bottom-6 right-6 bg-white/90 backdrop-blur p-3 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="zoom_in">zoom_in</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Product Details -->
+<div class="lg:col-span-5 flex flex-col">
+<div class="mb-stack-lg">
+<div class="flex items-center gap-2 mb-stack-sm">
+<div class="flex text-primary">
+<span class="material-symbols-outlined" data-icon="star" data-weight="fill">star</span>
+<span class="material-symbols-outlined" data-icon="star" data-weight="fill">star</span>
+<span class="material-symbols-outlined" data-icon="star" data-weight="fill">star</span>
+<span class="material-symbols-outlined" data-icon="star" data-weight="fill">star</span>
+<span class="material-symbols-outlined" data-icon="star_half">star_half</span>
+</div>
+<span class="text-label-caps text-on-surface-variant">4.8 (124 REVIEWS)</span>
+</div>
+<h1 class="font-h1 text-h1 text-primary mb-4 leading-tight">Luminescent Multi-Peptide Serum</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-6">A clinically-proven concentré designed to stimulate collagen production and restore the skin's natural luminosity through molecular precision.</p>
+<div class="text-h2 font-h2 text-primary mb-8">$185.00</div>
+</div>
+<!-- Concerns -->
+<div class="mb-stack-lg">
+<span class="block text-label-caps text-on-surface mb-stack-sm">TARGETED CONCERNS</span>
+<div class="flex flex-wrap gap-2">
+<span class="px-4 py-1.5 bg-secondary-fixed text-primary rounded-full text-label-caps">HYPERPIGMENTATION</span>
+<span class="px-4 py-1.5 bg-secondary-fixed text-primary rounded-full text-label-caps">FINE LINES</span>
+<span class="px-4 py-1.5 bg-secondary-fixed text-primary rounded-full text-label-caps">LOSS OF ELASTICITY</span>
+</div>
+</div>
+<!-- Formulation Selection -->
+<div class="mb-stack-lg">
+<span class="block text-label-caps text-on-surface mb-stack-sm">FORMULATION</span>
+<div class="grid grid-cols-2 gap-4">
+<button class="border-2 border-primary-container p-4 rounded-xl text-left bg-surface-container-low transition-all">
+<span class="block font-bold text-primary">Standard</span>
+<span class="text-xs text-on-surface-variant italic">Molecular Weight 1.0</span>
+</button>
+<button class="border-2 border-outline-variant p-4 rounded-xl text-left hover:border-primary-container transition-all">
+<span class="block font-bold text-on-surface">Intensive</span>
+<span class="text-xs text-on-surface-variant italic">Molecular Weight 2.5</span>
+</button>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex gap-4 mb-stack-lg">
+<div class="flex items-center border border-outline-variant rounded-lg bg-white">
+<button class="p-4 hover:bg-stone-50 text-primary"><span class="material-symbols-outlined" data-icon="remove">remove</span></button>
+<span class="px-6 font-bold">1</span>
+<button class="p-4 hover:bg-stone-50 text-primary"><span class="material-symbols-outlined" data-icon="add">add</span></button>
+</div>
+<button class="flex-1 bg-primary-container text-white rounded-lg font-bold hover:bg-primary transition-all shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+                        ADD TO REGIMEN
+                    </button>
+</div>
+<!-- Clinical Details Tabs -->
+<div class="mt-8 border-t border-secondary-fixed pt-8">
+<div class="flex gap-8 border-b border-secondary-fixed mb-6">
+<button class="pb-4 border-b-2 border-primary text-primary font-bold text-sm">BENEFITS</button>
+<button class="pb-4 text-on-surface-variant font-medium text-sm hover:text-primary">INGREDIENTS</button>
+<button class="pb-4 text-on-surface-variant font-medium text-sm hover:text-primary">APPLICATION</button>
+</div>
+<div class="space-y-4">
+<div class="flex gap-4 items-start">
+<span class="material-symbols-outlined text-primary-container" data-icon="check_circle" data-weight="fill">check_circle</span>
+<div>
+<h4 class="font-bold text-on-surface">Cellular Regeneration</h4>
+<p class="text-sm text-on-surface-variant">Accelerates turnover rates by 40% over 12 weeks of consistent application.</p>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="material-symbols-outlined text-primary-container" data-icon="check_circle" data-weight="fill">check_circle</span>
+<div>
+<h4 class="font-bold text-on-surface">Barrier Reinforcement</h4>
+<p class="text-sm text-on-surface-variant">Ceramide complex strengthens the dermal barrier against environmental pollutants.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Related Products / The Clinical Carousel -->
+<section class="mt-section-padding">
+<div class="flex justify-between items-end mb-stack-lg">
+<div>
+<span class="text-label-caps text-primary">COMPLEMENTARY CARE</span>
+<h2 class="font-h2 text-h2 text-primary">Complete Your Routine</h2>
+</div>
+<div class="flex gap-2">
+<button class="w-12 h-12 rounded-full border border-secondary-fixed flex items-center justify-center text-primary hover:bg-secondary-fixed transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-12 h-12 rounded-full border border-secondary-fixed flex items-center justify-center text-primary hover:bg-secondary-fixed transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="flex gap-gutter overflow-x-auto pb-8 snap-x no-scrollbar">
+<!-- Product 1 -->
+<div class="min-w-[320px] snap-start group">
+<div class="bg-white rounded-xl overflow-hidden border border-secondary-fixed mb-4 transition-all hover:shadow-[0_20px_40px_rgba(79,95,63,0.05)]">
+<div class="aspect-square relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A luxury medical-grade facial cleanser bottle presented on a soft-focus background of botanical elements and clinical glass. The design follows TMC Medical's high-end aesthetic with olive green and warm cream tones. Lighting is natural and creates a serene, premium atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlwKTieUUZXPRxhMMPwLhGnSqEHwiKlgZt7Y6uG0ntUBI1AV0CJCATUUZAsPMZSwFMY09FA0WWgium-Ai_LirwFyaIkjZ45h0mwv2QxjCxrEKXgmVRbzKG2duAp3jk82LQja2-FQpjH3T_G0PY9mbCy5Jh6qECgLMt0Z36mjkx1Uw7648xK6biN3KC_mCB4H7B68MW5lY51WX9wnt9x7sPRPBZPXaG563J6pDFqu2HL27CEG9W7XVj4ZTFWc2jgB_azCx9v8tI7_k"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur p-2 rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<div class="p-6">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">CLEANSER</span>
+<h3 class="font-h3 text-lg text-primary mt-1">Silk pH balancer</h3>
+<div class="mt-2 text-primary font-bold">$65.00</div>
+</div>
+</div>
+</div>
+<!-- Product 2 -->
+<div class="min-w-[320px] snap-start group">
+<div class="bg-white rounded-xl overflow-hidden border border-secondary-fixed mb-4 transition-all hover:shadow-[0_20px_40px_rgba(79,95,63,0.05)]">
+<div class="aspect-square relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A minimalist jar of clinical moisturizing cream with a silver lid, resting on a reflective surface that mimics calm water. The scene is bathed in cool, high-key light to emphasize professional dermatological purity and high-end results. Palette includes TMC Medical's signature muted green and white." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR-IJxx5RhbJSEFIYl4GbAlUPfHK6M8qRNon3PoI2Fg-_JyofDUum5lpPAd45rAI1dRc58ZuCibOnsjm8ExK3-w5QWu0AqYJOu5mY7f02K__ciQSLNBwFkuTnkw0RD3Gltnpd5sJc2iLQa1QUAZA_y6PeSU4MO_BlgOhDC1pQfUeRZ0T56BiuUfsvQoWSkxsY9bDRxAUlbhldvOmJ6EnAVD0pJaPibix_QlJd7zDMS6JF6OdzDm7Dme7SYfEtLXBbCht7LenXn6b0"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur p-2 rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<div class="p-6">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">MOISTURIZER</span>
+<h3 class="font-h3 text-lg text-primary mt-1">Dermal Barrier Infusion</h3>
+<div class="mt-2 text-primary font-bold">$115.00</div>
+</div>
+</div>
+</div>
+<!-- Product 3 -->
+<div class="min-w-[320px] snap-start group">
+<div class="bg-white rounded-xl overflow-hidden border border-secondary-fixed mb-4 transition-all hover:shadow-[0_20px_40px_rgba(79,95,63,0.05)]">
+<div class="aspect-square relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A tall, slim airless pump bottle for a clinical sunscreen. The setting is a bright, sun-drenched minimalist office with shadows of palm leaves. The lighting is high-contrast yet soft, emphasizing a premium lifestyle and dermatological protection in line with the brand's quiet luxury." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWNaHsHtkyEeYZCkZLmOiYjQkuJdrQOyQpAN571mkn26QeU_3qg-yEixW28aYR8C2tyVVIBgd8ZtVOcUpYjHFfxzGZXEXK-RHh1N6KCRh-8Xx2s7ZZXRA4amYaHpLcif5wiKpzHwEuyqPLt2O4NOgu6SnaISa6LIcm-HlgpKdBQQjBeSDL_0m_xkkLees27VZT5FQgMGVuEd9JJmtKv41HMyHwHEvsDetiQdfEt-fw8abTa3RwpDcq-3dGNYixKR1BFAHA6hSuvXY"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur p-2 rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<div class="p-6">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">PROTECTION</span>
+<h3 class="font-h3 text-lg text-primary mt-1">Invisible Zinc Shield</h3>
+<div class="mt-2 text-primary font-bold">$80.00</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800 w-full py-20 px-8 md:px-16">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1440px] mx-auto">
+<div class="col-span-1">
+<span class="font-bold text-emerald-900 dark:text-emerald-50 text-xl block mb-6">TMC Medical</span>
+<p class="font-manrope text-xs leading-relaxed text-stone-500 max-w-xs">Precision dermatology met with premium hospitality. Curated results for the discerning skin.</p>
+</div>
+<div>
+<span class="text-label-caps text-emerald-900 mb-6 block">EXPLORE</span>
+<ul class="space-y-3">
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Treatments</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Shop</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Doctors</a></li>
+</ul>
+</div>
+<div>
+<span class="text-label-caps text-emerald-900 mb-6 block">SUPPORT</span>
+<ul class="space-y-3">
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Privacy Policy</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Terms of Service</a></li>
+<li><a class="font-manrope text-xs text-stone-500 hover:underline" href="#">Medical Disclaimer</a></li>
+</ul>
+</div>
+<div>
+<span class="text-label-caps text-emerald-900 mb-6 block">NEWSLETTER</span>
+<p class="font-manrope text-xs text-stone-500 mb-4">Subscribe for clinical updates and early access.</p>
+<div class="flex border-b border-stone-300 pb-2">
+<input class="bg-transparent border-none text-xs w-full focus:ring-0" placeholder="Email Address" type="email"/>
+<button class="text-primary"><span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span></button>
+</div>
+</div>
+</div>
+<div class="mt-20 pt-8 border-t border-stone-200 dark:border-stone-800 flex justify-between items-center max-w-[1440px] mx-auto">
+<span class="font-manrope text-xs text-stone-500">© 2024 TMC Medical Vietnam. All Rights Reserved.</span>
+<div class="flex gap-6">
+<span class="material-symbols-outlined text-stone-400" data-icon="public">public</span>
+<span class="material-symbols-outlined text-stone-400" data-icon="shield">shield</span>
+</div>
+</div>
+</footer>
+</body></html>

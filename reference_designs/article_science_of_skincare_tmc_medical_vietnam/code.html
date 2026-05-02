@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TMC Medical | Clinical Editorial</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f5f3f",
+                        "on-surface": "#1a1c18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45483f",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary": "#384729",
+                        "secondary-fixed": "#ece1d0",
+                        "surface-container-high": "#e8e9e2",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3dc",
+                        "on-secondary-fixed-variant": "#4d4639",
+                        "on-primary-fixed-variant": "#3c4b2d",
+                        "outline": "#75786e",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "surface-dim": "#dadad4",
+                        "surface-variant": "#e3e3dc",
+                        "outline-variant": "#c5c8bc",
+                        "inverse-on-surface": "#f1f1ea",
+                        "surface-container": "#eeeee7",
+                        "on-tertiary-fixed-variant": "#464746",
+                        "secondary-fixed-dim": "#d0c5b5",
+                        "primary-fixed": "#d6e9c0",
+                        "tertiary": "#424342",
+                        "surface": "#fafaf3",
+                        "on-tertiary-container": "#d2d1d0",
+                        "on-secondary-fixed": "#201b11",
+                        "surface-bright": "#fafaf3",
+                        "surface-tint": "#536343",
+                        "secondary-container": "#e9decd",
+                        "tertiary-container": "#595a59",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bacda5",
+                        "on-tertiary-fixed": "#1a1c1b",
+                        "on-primary-container": "#c6d8b0",
+                        "inverse-surface": "#2f312d",
+                        "on-primary-fixed": "#121f06",
+                        "tertiary-fixed-dim": "#c7c6c5",
+                        "background": "#fafaf3",
+                        "on-background": "#1a1c18",
+                        "on-primary": "#ffffff",
+                        "secondary": "#655d50",
+                        "inverse-primary": "#bacda5",
+                        "surface-container-low": "#f4f4ed",
+                        "on-secondary-container": "#696254"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "section-padding": "120px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h3": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "h2": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h3": ["24px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["36px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .content-container {
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)]">
+<div class="flex justify-between items-center h-20 px-8 md:px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold tracking-tighter text-emerald-900">TMC Medical</div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Treatments</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Shop</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Doctors</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Clinics</a>
+<a class="font-manrope font-medium tracking-tight text-stone-500 hover:text-emerald-800 transition-colors duration-300" href="#">Philosophy</a>
+</div>
+<div class="flex items-center space-x-6">
+<button class="material-symbols-outlined text-stone-600 hover:text-primary transition-colors">shopping_bag</button>
+<button class="material-symbols-outlined text-stone-600 hover:text-primary transition-colors">person</button>
+</div>
+</div>
+</nav>
+<!-- Article Hero Section -->
+<header class="pt-20">
+<div class="w-full h-[716px] relative overflow-hidden">
+<img alt="Clinical Excellence Hero" class="w-full h-full object-cover" data-alt="A high-end, minimalist medical spa interior with warm ambient lighting and soft olive accents. The space features clean lines, white marble surfaces, and a sense of clinical precision combined with premium hospitality. Soft shadows play across the textured walls, creating a serene and professional atmosphere that embodies quiet luxury and modern dermatological expertise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBEw8wN-BeDWxPtgnk8yXkekp0sRGmhMFso2pdqg8M2iO6A48ORn0VAHgsZYsOmOxXW671aG1W-k6SZXcHE7YbHrtWOnKx45okOFoaXIaim_CfkXgrYtGZCbwbwUk4Lff7kkPNvW8yKKDUEglMHl-FVRGjvZIifJ-6Pu75aBhcLXWcZ8MpDx7E2JIYAFM6M3fsP-BjlUmcgoivnjjjojx2gScFVFy9xRTyXQNekZu0jwUNrxIVNsZyVrgq9dZokuYE10WVTroS6mc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent opacity-60"></div>
+</div>
+</header>
+<!-- Article Body Layout -->
+<main class="max-w-[1440px] mx-auto px-8 md:px-16 py-section-padding grid grid-cols-1 lg:grid-cols-12 gap-16">
+<!-- Left Column: Content Canvas -->
+<article class="lg:col-span-8 content-container mx-auto lg:mx-0">
+<div class="mb-stack-lg">
+<span class="font-label-caps text-label-caps text-primary-container mb-stack-sm block">DERMATOLOGY EDITORIAL</span>
+<h1 class="font-h1 text-h1 text-on-surface mb-stack-md">Advanced Protocols in Regenerative Aesthetics: The 2024 Synthesis</h1>
+<div class="flex items-center space-x-6 py-stack-md border-y border-outline-variant/30 mb-stack-lg">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-secondary-fixed">
+<img alt="Dr. Elena Vo" class="w-full h-full object-cover" data-alt="Professional portrait of a female dermatologist in a clean white medical coat. She has a confident and approachable expression, set against a bright, minimalist studio background. The lighting is soft and high-key, emphasizing a modern medical professional look with high-end clinical aesthetic and natural skin tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtkePWMdIA3e0KOZ8e4VZYQL_eWYeu2pYGD3ffBQqnB0IX7jx08apkaRpGmDde0p-nY-dDaZTU6cBUHkOKdNFh0lBwLUKiAwxVM0MwwpyTFx05ZGdwYtrsEy6useHvRKThIq0cMP15bSrHYpSTgFxRNKm1t4iHco8IuT62Onq1B9VGShgdRsZHQ5zIDXiSFEK-sVlNJfcwplMZ258pJhf7t009_9EeUs6m03Rz8NnnqQGB4mBAyxf40aOl-7ijejezgYrUt5-8TQo"/>
+</div>
+<div>
+<p class="font-label-caps text-[12px] text-on-surface uppercase tracking-wider">Dr. Elena Vo</p>
+<p class="text-[12px] text-outline font-medium uppercase tracking-widest">Chief of Dermatology</p>
+</div>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant/30"></div>
+<p class="font-label-caps text-[12px] text-outline uppercase tracking-widest">October 24, 2024</p>
+</div>
+</div>
+<!-- Body Content -->
+<div class="space-y-stack-lg">
+<p class="font-body-lg text-body-lg leading-relaxed text-on-surface-variant">
+                    As we navigate the intersection of high-precision medical technology and the evolving landscape of holistic wellbeing, the field of regenerative aesthetics has moved beyond simple correction. Today, we focus on biological optimization—triggering the body's innate capacity for cellular repair through sophisticated, non-invasive protocols.
+                </p>
+<h2 class="font-h2 text-h2 text-primary pt-stack-md">The Shift Towards Biomimetic Skincare</h2>
+<p class="font-body-md text-body-md leading-relaxed text-on-surface-variant">
+                    Clinical research now indicates that the most sustainable aesthetic results are achieved when we mimic natural biological processes. At TMC Medical, our approach integrates the latest in exosome therapy and molecular bio-hacking to ensure that every treatment works in harmony with your skin's unique structural integrity.
+                </p>
+<div class="my-stack-lg rounded-xl overflow-hidden bg-surface-container-low p-1 shadow-sm">
+<img alt="Clinical procedure close up" class="w-full aspect-video object-cover rounded-lg" data-alt="A close-up shot of a sophisticated medical laser device being used in a clean, brightly lit treatment room. The setting is clinical yet luxurious, with soft warm lighting and a palette of whites and deep olives. The focus is on the precision of the technology, reflecting high-end dermatological practice and advanced skin care results." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm06yPSI6x5K2nB2wSIyKSAwxcn1OBrK8jxMjTr-KwuP2ALYTq_62CuNMVYqDpPnDy1sVp6eBeUZjtlErHZALOllpqFUYjbz4p_dFPfSK-DTmQnt5LOSSQ200iVt9j2FjgIE5A4ZmED75pKWhFhsSTOUz-O-UhvMexAw89lwrNdIXoGIg6P9w5VILV1X83OKpRjkxj2qZ2XBSp9lD39criUOkVMYEcUK17hJBC1RIRpCwimmlQYtbpDg8cdxQjgFjfYpRiAREbV4g"/>
+<p class="p-stack-md font-label-caps text-[11px] text-outline text-center uppercase tracking-widest">Clinical Observation: Fractional Laser Synthesis in Asian Skin Types</p>
+</div>
+<h3 class="font-h3 text-h3 text-primary">Key Innovations for the Modern Professional</h3>
+<p class="font-body-md text-body-md leading-relaxed text-on-surface-variant">
+                    The modern professional demands efficacy without extended downtime. This has led to the rise of 'Flash Protocols'—highly concentrated treatments that deliver significant regenerative signals in a compressed timeframe. These are not merely 'facials,' but medical interventions designed for long-term health.
+                </p>
+<ul class="space-y-stack-md list-none pl-0 border-l-2 border-secondary-fixed pl-stack-lg py-stack-md">
+<li class="font-body-md text-on-surface-variant">
+<strong class="text-primary block mb-1">Cellular Synchronization:</strong> Aligning treatment cycles with the skin's natural circadian rhythm for maximum absorption.
+                    </li>
+<li class="font-body-md text-on-surface-variant">
+<strong class="text-primary block mb-1">Micro-Invasive Synergy:</strong> Combining RF Microneedling with bespoke serum infusions tailored to DNA profiles.
+                    </li>
+<li class="font-body-md text-on-surface-variant">
+<strong class="text-primary block mb-1">Post-Treatment Longevity:</strong> Advanced home-care protocols that utilize pharmaceutical-grade bioactive compounds.
+                    </li>
+</ul>
+<p class="font-body-md text-body-md leading-relaxed text-on-surface-variant italic border-t border-outline-variant/20 pt-stack-lg">
+                    "True beauty is no longer about changing what we see in the mirror, but about honoring the biological masterpiece that already exists." — Dr. Elena Vo
+                </p>
+</div>
+</article>
+<!-- Right Column: Sidebar (Related Treatments) -->
+<aside class="lg:col-span-4 space-y-stack-lg">
+<div class="sticky top-28 space-y-stack-lg">
+<!-- Related Treatments Section -->
+<section class="bg-surface-container-low rounded-xl p-8 border border-outline-variant/30">
+<h4 class="font-h3 text-[20px] text-primary mb-stack-lg">Recommended Treatments</h4>
+<div class="space-y-stack-lg">
+<!-- Treatment Card 1 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-lg aspect-[4/3] mb-stack-sm">
+<img alt="Regenerative Therapy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A minimalist display of premium skincare bottles in a bright, airy setting. The bottles are sleek and high-end, arranged artfully on a light beige stone surface with soft shadows and botanical accents. The lighting is natural and bright, conveying a sense of clean luxury and scientific formulation for premium dermatology." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsG-pP8A-d8lqLBYMUMgHYv2zNEy8lCEVhoy7fmh6aorCaOzY8HZEVhS7q2l_RXY9jvTK5_AC64hm0bH8CK1Je_8ON9aIxzp7Vy8A_i5oSxZqITS8SPGwagf5G-BY9W7OEIkuw-__2fmqn9q-8A-Xp_xOxEbcjdePBBo7vzX_vXfeZv-mm8RFHvqbfW6uVJxnWKic9jIw0ud1USK3K1dR-dRIrHv8AAL0CasbhA6OHl-gqC6U0aCpvJXExsZTO4SJ7ZQHPawO8qkA"/>
+</div>
+<h5 class="font-label-caps text-[14px] text-on-surface mb-1 uppercase tracking-tight group-hover:text-primary transition-colors">TMC Signature Regeneration</h5>
+<p class="text-[12px] text-outline line-clamp-2 leading-relaxed">Exosome-powered skin revitalization for instant radiance and long-term repair.</p>
+</div>
+<!-- Treatment Card 2 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-lg aspect-[4/3] mb-stack-sm">
+<img alt="Precision RF" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A professional aesthetician performing a precise facial treatment using modern clinical equipment in a high-end medical spa. The environment is serene and pristine, with soft warm lighting and a sophisticated palette of white and olive. The atmosphere is one of calm, professional luxury and advanced skincare innovation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnEediKZTh3-tB5BH3BjkFjQdK-QvDCfYsqI528NxIuqQxpIfxIfhHVb-M8Cz7-Xh1dL7_zuyd0hYD6GcrK_zjuOnl38qBOPgRMs_DcdoEEMc9ayd019OGCO42FmVQ2fgVLgEG46lYUsSKjt9WVbLdek5nGTpJc_XBbCq4aMecLGAScalUC8qFVa_I2kKMeR1P2U8C8bDXhWjdAown8zebtjUmdZ-xPGY-LqjOsqezjaH4cw6f3DQHG6j-sj0J84gbYrbr3vFr8fs"/>
+</div>
+<h5 class="font-label-caps text-[14px] text-on-surface mb-1 uppercase tracking-tight group-hover:text-primary transition-colors">Precision RF Sculpting</h5>
+<p class="text-[12px] text-outline line-clamp-2 leading-relaxed">Medical-grade radiofrequency for jawline definition and deep tissue tightening.</p>
+</div>
+</div>
+<button class="w-full mt-stack-lg py-4 border border-primary text-primary font-label-caps text-[12px] uppercase tracking-widest rounded-full hover:bg-primary hover:text-white transition-all duration-300">
+                        View All Treatments
+                    </button>
+</section>
+<!-- Newsletter / Lead Gen -->
+<section class="bg-primary-container text-on-tertiary rounded-xl p-8 shadow-lg shadow-primary-container/10">
+<h4 class="font-h3 text-[20px] mb-stack-md">Expert Insights</h4>
+<p class="text-[14px] opacity-80 mb-stack-lg leading-relaxed">Join our inner circle for monthly clinical reports and early access to aesthetic innovations.</p>
+<div class="space-y-stack-md">
+<input class="w-full bg-white/10 border-transparent focus:border-white/30 focus:ring-0 text-white placeholder-white/50 rounded-lg py-3 px-4 text-sm" placeholder="Email address" type="email"/>
+<button class="w-full py-4 bg-white text-primary-container font-label-caps text-[12px] uppercase tracking-widest rounded-full font-bold">Subscribe</button>
+</div>
+</section>
+</div>
+</aside>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-stone-50 border-t border-stone-200">
+<div class="w-full py-20 px-8 md:px-16 max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="md:col-span-1">
+<div class="font-bold text-emerald-900 text-xl mb-6">TMC Medical</div>
+<p class="text-stone-500 text-xs leading-relaxed max-w-xs">
+                    Leading the future of regenerative aesthetics in Vietnam. We combine medical precision with the art of premium hospitality to deliver transformative results.
+                </p>
+</div>
+<div>
+<h6 class="font-label-caps text-on-surface mb-6 uppercase tracking-widest text-[12px]">Services</h6>
+<ul class="space-y-4 text-stone-500 text-xs font-manrope">
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Aesthetic Dermatology</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Clinical Skincare</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Regenerative Therapy</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Precision Sculpting</a></li>
+</ul>
+</div>
+<div>
+<h6 class="font-label-caps text-on-surface mb-6 uppercase tracking-widest text-[12px]">The Clinic</h6>
+<ul class="space-y-4 text-stone-500 text-xs font-manrope">
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Our Philosophy</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Medical Staff</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Patient Concierge</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Locations</a></li>
+</ul>
+</div>
+<div>
+<h6 class="font-label-caps text-on-surface mb-6 uppercase tracking-widest text-[12px]">Support</h6>
+<ul class="space-y-4 text-stone-500 text-xs font-manrope">
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Contact Us</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Terms of Service</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Privacy Policy</a></li>
+<li><a class="hover:underline hover:text-primary transition-all" href="#">Medical Disclaimer</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto px-8 md:px-16 py-8 border-t border-stone-200/50">
+<p class="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-medium text-center">© 2024 TMC Medical Vietnam. All Rights Reserved.</p>
+</div>
+</footer>
+</body></html>
