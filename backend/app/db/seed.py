@@ -1,15 +1,873 @@
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.category import Category
 from app.models.brand import Brand
 from app.models.product import Product
+from app.models.discount_code import DiscountCode
 from app.models.discount_setting import DiscountSetting
+from app.models.pricing_tier import PricingTier
+from app.models.wholesale_tier import WholesaleTier
+from app.models.chatbot_api_key import ChatbotApiKey
+from app.models.blog_category import BlogCategory
+from app.models.blog_article import BlogArticle
+from app.models.order import Order
+from app.models.order_item import OrderItem
+from app.models.product_discount import ProductDiscount
+from app.models.combo import Combo
+from app.models.combo_item import ComboItem
+from app.models.product_image import ProductImage
+from app.models.product_review import ProductReview
+from app.models.banner import Banner
+from app.models.notification import Notification
+from app.models.wishlist_item import WishlistItem
+from app.core.config import settings
 from app.core.security import get_password_hash
+
+
+def ensure_default_discount_setting(db: Session):
+    setting = db.query(DiscountSetting).first()
+    if setting:
+        if setting.default_shipping_fee is None:
+            setting.default_shipping_fee = 30000
+            db.commit()
+        return
+
+    admin = db.query(User).filter(User.role == "admin").order_by(User.id.asc()).first()
+    setting = DiscountSetting(
+        wholesale_threshold=5000000,
+        default_shipping_fee=30000,
+        updated_by=admin.id if admin else None,
+    )
+    db.add(setting)
+    db.commit()
+
+
+def ensure_default_pricing_tiers(db: Session):
+    if db.query(PricingTier).first():
+        return
+    db.add_all(
+        [
+            PricingTier(
+                name="Silver 2M",
+                min_total_spent=2000000,
+                discount_percent=0,
+                use_wholesale_price=True,
+                note="Khách đạt tổng mua 2 triệu sẽ được áp dụng giá sỉ nếu sản phẩm có giá sỉ.",
+            ),
+            PricingTier(
+                name="Gold 5M",
+                min_total_spent=5000000,
+                discount_percent=5,
+                use_wholesale_price=True,
+                note="Giá sỉ + giảm thêm 5% cho khách hàng thân thiết.",
+            ),
+            PricingTier(
+                name="Diamond 10M",
+                min_total_spent=10000000,
+                discount_percent=8,
+                use_wholesale_price=True,
+                note="Giá sỉ + giảm thêm 8% cho khách VIP.",
+            ),
+        ]
+    )
+    db.commit()
+
+
+def ensure_default_wholesale_tiers(db: Session):
+    if db.query(WholesaleTier).first():
+        return
+    db.add_all(
+        [
+            WholesaleTier(
+                name="Mức giá sỉ 2tr-8tr",
+                min_order_total=2000000,
+                max_order_total=8000000,
+                discount_percent=5,
+                note="Giảm 5% mỗi sản phẩm cho đơn hàng từ 2 triệu đến 8 triệu.",
+            ),
+            WholesaleTier(
+                name="Mức giá sỉ 8tr-15tr",
+                min_order_total=8000000,
+                max_order_total=15000000,
+                discount_percent=10,
+                note="Giảm 10% mỗi sản phẩm cho đơn hàng từ 8 triệu đến 15 triệu.",
+            ),
+            WholesaleTier(
+                name="Mức giá sỉ 15tr-25tr",
+                min_order_total=15000000,
+                max_order_total=25000000,
+                discount_percent=13,
+                note="Giảm 13% mỗi sản phẩm cho đơn hàng từ 15 triệu đến 25 triệu.",
+            ),
+            WholesaleTier(
+                name="Mức giá sỉ 25tr-35tr",
+                min_order_total=25000000,
+                max_order_total=35000000,
+                discount_percent=15,
+                note="Giảm 15% mỗi sản phẩm cho đơn hàng từ 25 triệu đến 35 triệu.",
+            ),
+            WholesaleTier(
+                name="Mức giá sỉ 35tr-50tr",
+                min_order_total=35000000,
+                max_order_total=50000000,
+                discount_percent=18,
+                note="Giảm 18% mỗi sản phẩm cho đơn hàng từ 35 triệu đến 50 triệu.",
+            ),
+        ]
+    )
+    db.commit()
+
+
+def ensure_default_chatbot_key(db: Session):
+    if db.query(ChatbotApiKey).first():
+        return
+    if not settings.DEEPSEEK_API_KEY:
+        return
+    db.add(
+        ChatbotApiKey(
+            name="DeepSeek Primary",
+            provider="deepseek",
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL,
+            model=settings.DEEPSEEK_DEFAULT_MODEL,
+            reasoning_effort="max",
+            is_active=True,
+            note="Auto imported from environment variable.",
+        )
+    )
+    db.commit()
+
+
+def get_or_create_user(db: Session, *, email: str, password: str, full_name: str, phone: str, role: str = "customer") -> User:
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        return user
+    user = User(
+        email=email,
+        hashed_password=get_password_hash(password),
+        full_name=full_name,
+        phone=phone,
+        role=role,
+    )
+    db.add(user)
+    db.flush()
+    return user
+
+
+def get_or_create_category(db: Session, *, name: str, slug: str, image_url: str) -> Category:
+    category = db.query(Category).filter(Category.slug == slug).first()
+    if category:
+        category.image_url = image_url
+        db.flush()
+        return category
+    category = Category(name=name, slug=slug, image_url=image_url)
+    db.add(category)
+    db.flush()
+    return category
+
+
+def get_or_create_brand(db: Session, *, name: str, logo_url: str) -> Brand:
+    brand = db.query(Brand).filter(Brand.name == name).first()
+    if brand:
+        brand.logo_url = logo_url
+        db.flush()
+        return brand
+    brand = Brand(name=name, logo_url=logo_url)
+    db.add(brand)
+    db.flush()
+    return brand
+
+
+def get_or_create_product(db: Session, **payload) -> Product:
+    product = db.query(Product).filter(Product.name == payload["name"]).first()
+    if product:
+        return product
+    product = Product(**payload)
+    db.add(product)
+    db.flush()
+    return product
+
+
+def get_or_create_discount_code(db: Session, **payload) -> DiscountCode:
+    code = db.query(DiscountCode).filter(DiscountCode.code == payload["code"]).first()
+    if code:
+        return code
+    code = DiscountCode(**payload)
+    db.add(code)
+    db.flush()
+    return code
+
+
+def get_or_create_blog_category(db: Session, *, name: str, slug: str, description: str) -> BlogCategory:
+    category = db.query(BlogCategory).filter(BlogCategory.slug == slug).first()
+    if category:
+        return category
+    category = BlogCategory(name=name, slug=slug, description=description)
+    db.add(category)
+    db.flush()
+    return category
+
+
+def get_or_create_blog_article(db: Session, **payload) -> BlogArticle:
+    article = db.query(BlogArticle).filter(BlogArticle.slug == payload["slug"]).first()
+    if article:
+        return article
+    article = BlogArticle(**payload)
+    db.add(article)
+    db.flush()
+    return article
+
+
+def create_demo_order(
+    db: Session,
+    *,
+    user: User,
+    status: str,
+    shipping_full_name: str,
+    shipping_phone: str,
+    shipping_address: str,
+    shipping_city: str,
+    shipping_postal_code: str,
+    items: list[tuple[Product, int]],
+    payment_method: str = "cod",
+    shipping_fee: float = 30000,
+    applied_price_type: str = "retail",
+    created_at: Optional[datetime] = None,
+) -> None:
+    if db.query(Order).filter(Order.user_id == user.id, Order.shipping_full_name == shipping_full_name, Order.status == status).first():
+        return
+
+    item_total = 0.0
+    order = Order(
+        user_id=user.id,
+        total_amount=0.0,
+        applied_price_type=applied_price_type,
+        status=status,
+        payment_method=payment_method,
+        shipping_fee=shipping_fee,
+        shipping_full_name=shipping_full_name,
+        shipping_phone=shipping_phone,
+        shipping_address=shipping_address,
+        shipping_city=shipping_city,
+        shipping_postal_code=shipping_postal_code,
+        created_at=created_at or datetime.now(timezone.utc),
+    )
+    db.add(order)
+    db.flush()
+
+    for product, quantity in items:
+        unit_price = float(product.retail_price)
+        db.add(
+            OrderItem(
+                order_id=order.id,
+                product_id=product.id,
+                quantity=quantity,
+                unit_price=unit_price,
+            )
+        )
+        if product.stock >= quantity:
+            product.stock -= quantity
+        item_total += unit_price * quantity
+
+    order.total_amount = round(item_total + shipping_fee, 2)
+    db.flush()
+
+
+def ensure_expanded_seed_data(db: Session) -> None:
+    admin = db.query(User).filter(User.role == "admin").order_by(User.id.asc()).first()
+    if not admin:
+        return
+
+    customers = [
+      get_or_create_user(db, email="customer1@tmc.vn", password="user123", full_name="Lê Minh Khánh", phone="0901112233"),
+      get_or_create_user(db, email="customer2@tmc.vn", password="user123", full_name="Trần Bảo Ngọc", phone="0902445566"),
+      get_or_create_user(db, email="customer3@tmc.vn", password="user123", full_name="Phạm Thu Hà", phone="0903778899"),
+    ]
+
+    categories = {
+        "son-moi": get_or_create_category(
+            db,
+            name="Son Môi",
+            slug="son-moi",
+            image_url="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
+        ),
+        "cham-soc-da": get_or_create_category(
+            db,
+            name="Chăm Sóc Da",
+            slug="cham-soc-da",
+            image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+        ),
+        "nuoc-hoa": get_or_create_category(
+            db,
+            name="Nước Hoa",
+            slug="nuoc-hoa",
+            image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
+        ),
+        "trang-diem-mat": get_or_create_category(
+            db,
+            name="Trang Điểm Mắt",
+            slug="trang-diem-mat",
+            image_url="https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=800",
+        ),
+    }
+
+    brands = {
+        "MAC": get_or_create_brand(
+            db,
+            name="MAC",
+            logo_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=200",
+        ),
+        "Clinique": get_or_create_brand(
+            db,
+            name="Clinique",
+            logo_url="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=200",
+        ),
+        "L'Oréal": get_or_create_brand(
+            db,
+            name="L'Oréal",
+            logo_url="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200",
+        ),
+        "La Roche-Posay": get_or_create_brand(
+            db,
+            name="La Roche-Posay",
+            logo_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=200",
+        ),
+        "Bioderma": get_or_create_brand(
+            db,
+            name="Bioderma",
+            logo_url="https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?auto=format&fit=crop&q=80&w=200",
+        ),
+        "Maybelline": get_or_create_brand(
+            db,
+            name="Maybelline",
+            logo_url="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=200",
+        ),
+    }
+
+    product_specs = [
+        {
+            "name": "La Roche-Posay Cicaplast Baume B5+",
+            "description": "Kem phục hồi da khô rát, kích ứng và sau treatment với kết cấu êm dịu.",
+            "image_url": "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["cham-soc-da"].id,
+            "brand_id": brands["La Roche-Posay"].id,
+            "retail_price": 395000,
+            "wholesale_price": 320000,
+            "badge": "BEST SELLER",
+            "stock": 180,
+        },
+        {
+            "name": "Bioderma Sensibio H2O",
+            "description": "Nước tẩy trang dịu nhẹ cho da nhạy cảm, làm sạch lớp trang điểm và bụi bẩn hiệu quả.",
+            "image_url": "https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["cham-soc-da"].id,
+            "brand_id": brands["Bioderma"].id,
+            "retail_price": 420000,
+            "wholesale_price": 340000,
+            "badge": "NEW IN",
+            "stock": 210,
+        },
+        {
+            "name": "Maybelline Sky High Mascara",
+            "description": "Mascara làm dài mi nổi tiếng với đầu chải linh hoạt, giúp mi cong tơi tự nhiên.",
+            "image_url": "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["trang-diem-mat"].id,
+            "brand_id": brands["Maybelline"].id,
+            "retail_price": 289000,
+            "wholesale_price": 230000,
+            "badge": "BEST SELLER",
+            "stock": 260,
+        },
+        {
+            "name": "MAC Locked Kiss Ink 24HR",
+            "description": "Son tint lì bền màu 24 giờ, chất son mỏng nhẹ nhưng lên màu đậm nét.",
+            "image_url": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["son-moi"].id,
+            "brand_id": brands["MAC"].id,
+            "retail_price": 780000,
+            "wholesale_price": 620000,
+            "badge": "SALE",
+            "stock": 130,
+        },
+        {
+            "name": "Clinique Take The Day Off Cleansing Balm",
+            "description": "Sáp tẩy trang tan chảy trên da, cuốn sạch kem chống nắng và lớp makeup lâu trôi.",
+            "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["cham-soc-da"].id,
+            "brand_id": brands["Clinique"].id,
+            "retail_price": 890000,
+            "wholesale_price": 720000,
+            "badge": "NEW IN",
+            "stock": 85,
+        },
+        {
+            "name": "L'Oréal Panorama Mascara",
+            "description": "Mascara làm dày và mở rộng chiều ngang của mắt, phù hợp makeup sắc nét.",
+            "image_url": "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["trang-diem-mat"].id,
+            "brand_id": brands["L'Oréal"].id,
+            "retail_price": 329000,
+            "wholesale_price": 255000,
+            "badge": "NEW IN",
+            "stock": 190,
+        },
+        {
+            "name": "La Roche-Posay Anthelios UVMune 400",
+            "description": "Kem chống nắng phổ rộng, kết cấu mỏng nhẹ, hỗ trợ bảo vệ da tối ưu mỗi ngày.",
+            "image_url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["cham-soc-da"].id,
+            "brand_id": brands["La Roche-Posay"].id,
+            "retail_price": 515000,
+            "wholesale_price": 410000,
+            "badge": "BEST SELLER",
+            "stock": 230,
+        },
+        {
+            "name": "Bioderma Atoderm Intensive Gel-Cream",
+            "description": "Gel cream dưỡng ẩm cho da khô nhạy cảm, thấm nhanh và giảm cảm giác ngứa rát.",
+            "image_url": "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["cham-soc-da"].id,
+            "brand_id": brands["Bioderma"].id,
+            "retail_price": 610000,
+            "wholesale_price": 490000,
+            "stock": 120,
+        },
+        {
+            "name": "Maybelline Vinyl Ink Witty",
+            "description": "Son kem bóng giữ màu lâu, bề mặt căng mướt với sắc nâu hồng dễ dùng hằng ngày.",
+            "image_url": "https://images.unsplash.com/photo-1599305090598-fe179d501227?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["son-moi"].id,
+            "brand_id": brands["Maybelline"].id,
+            "retail_price": 299000,
+            "wholesale_price": 235000,
+            "stock": 170,
+        },
+        {
+            "name": "Clinique Aromatics Elixir",
+            "description": "Nước hoa cổ điển, chiều sâu hương thảo mộc và hoa trắng tinh tế, bám lâu.",
+            "image_url": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
+            "category_id": categories["nuoc-hoa"].id,
+            "brand_id": brands["Clinique"].id,
+            "retail_price": 2150000,
+            "wholesale_price": 1820000,
+            "stock": 55,
+        },
+    ]
+    products = [get_or_create_product(db, **spec) for spec in product_specs]
+
+    ensure_product_discounts(db, products)
+    ensure_combo_seed_data(db, products)
+
+    get_or_create_discount_code(
+        db,
+        code="FREESHIP30",
+        discount_type="fixed_amount",
+        discount_value=30000,
+        min_order_amount=250000,
+        max_usage=1000,
+        is_active=True,
+    )
+    get_or_create_discount_code(
+        db,
+        code="VIP15",
+        discount_type="percent",
+        discount_value=15,
+        min_order_amount=1200000,
+        max_usage=200,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=180),
+        is_active=True,
+    )
+    get_or_create_discount_code(
+        db,
+        code="SKINCARE50",
+        discount_type="fixed_amount",
+        discount_value=50000,
+        min_order_amount=500000,
+        max_usage=600,
+        is_active=True,
+    )
+
+    content_categories = {
+        "cham-soc-da": get_or_create_blog_category(
+            db,
+            name="Chăm Sóc Da",
+            slug="cham-soc-da",
+            description="Kiến thức chăm sóc da chuyên sâu.",
+        ),
+        "xu-huong": get_or_create_blog_category(
+            db,
+            name="Xu Hướng Làm Đẹp",
+            slug="xu-huong-lam-dep",
+            description="Cập nhật sản phẩm, xu hướng và routine mới.",
+        ),
+        "review-san-pham": get_or_create_blog_category(
+            db,
+            name="Review Sản Phẩm",
+            slug="review-san-pham",
+            description="Đánh giá nhanh các sản phẩm nổi bật được khách hàng quan tâm.",
+        ),
+    }
+
+    get_or_create_blog_article(
+        db,
+        title="Routine phục hồi da sau treatment trong 7 ngày đầu",
+        slug="routine-phuc-hoi-da-sau-treatment",
+        content="Sau treatment, điều quan trọng nhất là phục hồi hàng rào bảo vệ da, giảm kích ứng và bảo vệ khỏi ánh nắng. Ưu tiên sữa rửa mặt dịu nhẹ, kem phục hồi, xịt khoáng và kem chống nắng quang phổ rộng.",
+        image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+        author_id=admin.id,
+        category_id=content_categories["cham-soc-da"].id,
+        is_published=True,
+    )
+    get_or_create_blog_article(
+        db,
+        title="Top 5 món makeup nền nhẹ mặt đang được khách hỏi nhiều",
+        slug="top-5-mon-makeup-nen-nhe-mat",
+        content="Xu hướng nền trong trẻo, mỏng nhẹ tiếp tục lên ngôi. Các lựa chọn được yêu thích thường có độ bám tốt, ít xuống tông và không gây bí da sau nhiều giờ.",
+        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+        author_id=admin.id,
+        category_id=content_categories["xu-huong"].id,
+        is_published=True,
+    )
+    get_or_create_blog_article(
+        db,
+        title="Bioderma Sensibio H2O có hợp da treatment không?",
+        slug="bioderma-sensibio-h2o-co-hop-da-treatment-khong",
+        content="Đây là lựa chọn khá an toàn cho da nhạy cảm và da đang treatment nếu dùng đúng cách, không chà xát mạnh và luôn làm sạch lại khi cần.",
+        image_url="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+        author_id=admin.id,
+        category_id=content_categories["review-san-pham"].id,
+        is_published=True,
+    )
+
+    shipping_fee = 30000
+    if len(products) >= 6:
+        create_demo_order(
+            db,
+            user=customers[0],
+            status="pending",
+            shipping_full_name="Lê Minh Khánh",
+            shipping_phone="0901112233",
+            shipping_address="15 Nguyễn Huệ, Quận 1",
+            shipping_city="TP. Hồ Chí Minh",
+            shipping_postal_code="700000",
+            items=[(products[0], 1), (products[2], 2)],
+            shipping_fee=shipping_fee,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        create_demo_order(
+            db,
+            user=customers[1],
+            status="confirmed",
+            shipping_full_name="Trần Bảo Ngọc",
+            shipping_phone="0902445566",
+            shipping_address="88 Lý Tự Trọng, Hải Châu",
+            shipping_city="Đà Nẵng",
+            shipping_postal_code="550000",
+            items=[(products[3], 1), (products[5], 1)],
+            shipping_fee=shipping_fee,
+            created_at=datetime.now(timezone.utc) - timedelta(days=4),
+        )
+        create_demo_order(
+            db,
+            user=customers[2],
+            status="shipped",
+            shipping_full_name="Phạm Thu Hà",
+            shipping_phone="0903778899",
+            shipping_address="120 Trần Hưng Đạo, Ninh Kiều",
+            shipping_city="Cần Thơ",
+            shipping_postal_code="900000",
+            items=[(products[1], 1), (products[6], 1), (products[8], 1)],
+            shipping_fee=shipping_fee,
+            created_at=datetime.now(timezone.utc) - timedelta(days=8),
+        )
+        create_demo_order(
+            db,
+            user=customers[0],
+            status="delivered",
+            shipping_full_name="Lê Minh Khánh VIP",
+            shipping_phone="0901112233",
+            shipping_address="72 Pasteur, Quận 3",
+            shipping_city="TP. Hồ Chí Minh",
+            shipping_postal_code="700000",
+            items=[(products[4], 2), (products[9], 1)],
+            shipping_fee=shipping_fee,
+            created_at=datetime.now(timezone.utc) - timedelta(days=14),
+        )
+        create_demo_order(
+            db,
+            user=customers[1],
+            status="cancelled",
+            shipping_full_name="Trần Bảo Ngọc Huỷ",
+            shipping_phone="0902445566",
+            shipping_address="12 Nguyễn Văn Linh, Hải Châu",
+            shipping_city="Đà Nẵng",
+            shipping_postal_code="550000",
+            items=[(products[7], 1)],
+            shipping_fee=shipping_fee,
+            created_at=datetime.now(timezone.utc) - timedelta(days=20),
+        )
+
+    db.commit()
+
+def ensure_product_discounts(db: Session, products: list[Product]) -> None:
+    """Seed demo product discounts with different time windows so the feature is visible immediately."""
+    if db.query(ProductDiscount).first():
+        return
+
+    now = datetime.now(timezone.utc)
+
+    # Active discount - started 3 days ago, ends in 4 days (clearly visible countdown)
+    db.add(
+        ProductDiscount(
+            product_id=products[0].id,
+            discount_percent=20,
+            start_time=now - timedelta(days=3),
+            end_time=now + timedelta(days=4),
+            is_active=True,
+        )
+    )
+
+    # Active flash sale - started 1 day ago, ends in 12 hours (urgent countdown)
+    db.add(
+        ProductDiscount(
+            product_id=products[3].id,
+            discount_percent=35,
+            start_time=now - timedelta(days=1),
+            end_time=now + timedelta(hours=12),
+            is_active=True,
+        )
+    )
+
+    # Active discount - started yesterday, ends in 6 days
+    db.add(
+        ProductDiscount(
+            product_id=products[6].id,
+            discount_percent=15,
+            start_time=now - timedelta(days=1),
+            end_time=now + timedelta(days=6),
+            is_active=True,
+        )
+    )
+
+    # Scheduled - starts in 2 days, ends in 10 days
+    db.add(
+        ProductDiscount(
+            product_id=products[8].id,
+            discount_percent=25,
+            start_time=now + timedelta(days=2),
+            end_time=now + timedelta(days=10),
+            is_active=True,
+        )
+    )
+
+    # Expired - ended yesterday (to test that it doesn't show)
+    db.add(
+        ProductDiscount(
+            product_id=products[1].id,
+            discount_percent=50,
+            start_time=now - timedelta(days=10),
+            end_time=now - timedelta(days=1),
+            is_active=True,
+        )
+    )
+
+    db.commit()
+
+
+def get_or_create_combo(db: Session, *, name: str, **payload) -> Combo:
+    combo = db.query(Combo).filter(Combo.name == name).first()
+    if combo:
+        return combo
+    combo = Combo(name=name, **payload)
+    db.add(combo)
+    db.flush()
+    return combo
+
+
+def ensure_combo_seed_data(db: Session, products: list) -> None:
+    """Seed sample combo product bundles."""
+
+    def find_product(name_contains: str):
+        return db.query(Product).filter(Product.name.ilike(f"%{name_contains}%")).first()
+
+    def add_items(combo: Combo, item_names: list[str]):
+        if db.query(ComboItem).filter(ComboItem.combo_id == combo.id).first():
+            return
+        for name in item_names:
+            p = find_product(name)
+            if p:
+                db.add(ComboItem(combo_id=combo.id, product_id=p.id, quantity=1))
+
+    # Combo 1: Bộ Chăm Sóc Da Cơ Bản (15% off)
+    c1 = get_or_create_combo(
+        db,
+        name="Bộ Chăm Sóc Da Cơ Bản",
+        description="Combo thiết yếu cho routine chăm sóc da hàng ngày: làm sạch sâu, phục hồi da và chống nắng. Tiết kiệm 15% so với mua lẻ.",
+        image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c1, ["Niacinamide", "Hyaluronic Acid", "Moisture Surge"])
+
+    # Combo 2: Bộ Trang Điểm Cơ Bản (10% off)
+    c2 = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Cơ Bản",
+        description="Tất cả những gì bạn cần cho lớp makeup hoàn hảo mỗi ngày: son môi, mascara và bảng phấn mắt 9 ô chuyên nghiệp.",
+        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+        discount_percent=10,
+        is_active=True,
+    )
+    add_items(c2, ["Ruby Woo", "Voluminous Mascara", "Eye Shadow"])
+
+    # Combo 3: Cặp Nước Hoa Cao Cấp (20% off)
+    c3 = get_or_create_combo(
+        db,
+        name="Cặp Nước Hoa Cao Cấp",
+        description="Bộ đôi nước hoa tinh tế cho nam và nữ: hương gỗ ấm áp của Velvet Teddy và hương hoa quả tươi mát của Paradise Garden.",
+        image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
+        discount_percent=20,
+        is_active=True,
+    )
+    add_items(c3, ["Paradise Garden", "Velvet Teddy"])
+
+    # Combo 4: Bộ Dưỡng Ẩm Chuyên Sâu (12% off)
+    c4 = get_or_create_combo(
+        db,
+        name="Bộ Dưỡng Ẩm Chuyên Sâu",
+        description="Combo cấp ẩm toàn diện cho làn da khô ráp: serum HA cấp nước, gel dưỡng oil-free và kem dưỡng 72h chuyên sâu.",
+        image_url="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c4, ["Hyaluronic Acid", "Dramatically Different", "Moisture Surge"])
+
+    # Combo 5: Son Môi Signature (25% off)
+    c5 = get_or_create_combo(
+        db,
+        name="Bộ Sưu Tập Son Môi Signature",
+        description="Bộ ba son môi biểu tượng từ MAC và L'Oréal: đỏ Ruby Woo huyền thoại, Velvet Teddy quyến rũ và Color Riche hồng nude tự nhiên.",
+        image_url="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
+        discount_percent=25,
+        is_active=True,
+    )
+    add_items(c5, ["Ruby Woo", "Velvet Teddy", "Color Riche"])
+
+    # Combo 6: Skincare Routine Đầy Đủ (18% off)
+    c6 = get_or_create_combo(
+        db,
+        name="Skincare Routine Đầy Đủ",
+        description="Routine chăm sóc da hoàn chỉnh: serum Niacinamide trị mụn, HA cấp ẩm, Revitalift chống lão hóa và kem dưỡng 72h khóa ẩm.",
+        image_url="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=800",
+        discount_percent=18,
+        is_active=True,
+    )
+    add_items(c6, ["Niacinamide", "Hyaluronic Acid", "Revitalift", "Moisture Surge"])
+
+    db.commit()
+
+
+def ensure_content_seed_data(db: Session) -> None:
+    """Seed banners, reviews, product images, notifications and wishlist items."""
+    products = db.query(Product).limit(10).all()
+    if not products:
+        return
+
+    # Banners
+    if not db.query(Banner).first():
+        banners = [
+            Banner(
+                title="Bộ Sưu Tập Mùa Hè 2026",
+                subtitle="Khám phá sắc màu rực rỡ với ưu đãi lên đến 30%",
+                image_url="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1200",
+                link_url="/shop",
+                is_active=True,
+                sort_order=1,
+            ),
+            Banner(
+                title="Chăm Sóc Da Chuyên Sâu",
+                subtitle="Giải pháp toàn diện cho làn da khỏe mạnh từ TMC",
+                image_url="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
+                link_url="/shop",
+                is_active=True,
+                sort_order=2,
+            ),
+            Banner(
+                title="Combo Tiết Kiệm",
+                subtitle="Mua theo bộ - Tiết kiệm đến 25%",
+                image_url="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1200",
+                link_url="/combos",
+                is_active=True,
+                sort_order=3,
+            ),
+        ]
+        db.add_all(banners)
+
+    # Product Images for first few products
+    if not db.query(ProductImage).first():
+        sample_images = [
+            ProductImage(product_id=products[0].id, image_url=products[0].image_url or "", sort_order=1),
+            ProductImage(product_id=products[1].id, image_url=products[1].image_url or "", sort_order=1),
+            ProductImage(product_id=products[2].id, image_url=products[2].image_url or "", sort_order=1),
+        ]
+        db.add_all(sample_images)
+
+    # Product Reviews
+    customer = db.query(User).filter(User.role == "customer").first()
+    if customer and not db.query(ProductReview).first():
+        reviews = [
+            ProductReview(product_id=products[0].id, user_id=customer.id, rating=5, comment="Sản phẩm tuyệt vời, dùng rất thích!"),
+            ProductReview(product_id=products[1].id, user_id=customer.id, rating=4, comment="Chất lượng tốt, giao hàng nhanh."),
+            ProductReview(product_id=products[2].id, user_id=customer.id, rating=5, comment="Mùi thơm dễ chịu, bao bì đẹp."),
+        ]
+        db.add_all(reviews)
+
+    # Notifications
+    admin = db.query(User).filter(User.role == "admin").first()
+    if admin and not db.query(Notification).first():
+        notifications = [
+            Notification(
+                user_id=admin.id,
+                title="Chào mừng đến với TMC Admin",
+                message="Hệ thống quản trị đã sẵn sàng. Bạn có thể quản lý sản phẩm, đơn hàng và nội dung.",
+                link="/admin",
+            ),
+        ]
+        if customer:
+            notifications.append(
+                Notification(
+                    user_id=customer.id,
+                    title="Chào mừng đến với TMC!",
+                    message="Cảm ơn bạn đã đăng ký tài khoản. Khám phá bộ sưu tập mỹ phẩm cao cấp của chúng tôi.",
+                    link="/shop",
+                )
+            )
+        db.add_all(notifications)
+
+    # Wishlist Items
+    if customer and not db.query(WishlistItem).first():
+        wishlist_items = [
+            WishlistItem(user_id=customer.id, product_id=products[0].id),
+            WishlistItem(user_id=customer.id, product_id=products[1].id),
+        ]
+        db.add_all(wishlist_items)
+
+    db.commit()
+
 
 def seed_database(db: Session):
     """Seed initial data if database is empty."""
     # Check if already seeded
     if db.query(User).first():
+        ensure_default_discount_setting(db)
+        ensure_default_pricing_tiers(db)
+        ensure_default_wholesale_tiers(db)
+        ensure_expanded_seed_data(db)
+        ensure_content_seed_data(db)
+        ensure_default_chatbot_key(db)
         return
 
     # --- Users ---
@@ -79,9 +937,68 @@ def seed_database(db: Session):
     ]
     db.add_all(products)
 
+    # --- Discount Codes ---
+    db.add(
+        DiscountCode(
+            code="WELCOME10",
+            discount_type="percent",
+            discount_value=10,
+            min_order_amount=300000,
+            max_usage=500,
+            is_active=True,
+        )
+    )
+
     # --- Discount Setting ---
-    setting = DiscountSetting(wholesale_threshold=5000000, updated_by=admin.id)
+    setting = DiscountSetting(wholesale_threshold=5000000, default_shipping_fee=30000, updated_by=admin.id)
     db.add(setting)
 
+    ensure_default_pricing_tiers(db)
+    ensure_default_wholesale_tiers(db)
+
+    # --- Blog Categories ---
+    blog_categories = [
+        BlogCategory(name="Chăm Sóc Da", slug="cham-soc-da", description="Kiến thức chăm sóc da chuyên sâu."),
+        BlogCategory(name="Điều Trị", slug="dieu-tri", description="Bài viết về liệu trình và công nghệ làm đẹp."),
+        BlogCategory(name="Bác Sĩ Giải Đáp", slug="bac-si-giai-dap", description="Các câu hỏi thường gặp từ khách hàng."),
+    ]
+    db.add_all(blog_categories)
+    db.flush()
+
+    db.add_all(
+        [
+            BlogArticle(
+                title="Niacinamide có thực sự phù hợp với da dầu mụn?",
+                slug="niacinamide-cho-da-dau-mun",
+                content="Niacinamide là hoạt chất hỗ trợ điều tiết bã nhờn, làm dịu viêm và hỗ trợ cải thiện lỗ chân lông. Khi kết hợp với routine làm sạch, dưỡng ẩm và chống nắng hợp lý, đây là lựa chọn rất phù hợp cho da dầu mụn.",
+                image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+                author_id=admin.id,
+                category_id=blog_categories[0].id,
+                is_published=True,
+            ),
+            BlogArticle(
+                title="Khi nào nên chọn laser thay vì treatment bôi tại nhà?",
+                slug="khi-nao-nen-chon-laser",
+                content="Laser phù hợp hơn khi tình trạng sắc tố, sẹo rỗ hoặc lão hóa cần can thiệp sâu. Việc lựa chọn cần dựa trên tình trạng da, mục tiêu và khả năng nghỉ dưỡng sau điều trị.",
+                image_url="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800",
+                author_id=admin.id,
+                category_id=blog_categories[1].id,
+                is_published=True,
+            ),
+            BlogArticle(
+                title="5 hiểu lầm phổ biến về mụn tuổi trưởng thành",
+                slug="hieu-lam-ve-mun-tuoi-truong-thanh",
+                content="Mụn ở tuổi trưởng thành không chỉ liên quan đến vệ sinh da. Nội tiết, stress, giấc ngủ và sản phẩm sử dụng đều có thể là nguyên nhân quan trọng.",
+                image_url="https://images.unsplash.com/photo-1599305090598-fe179d501227?auto=format&fit=crop&q=80&w=800",
+                author_id=admin.id,
+                category_id=blog_categories[2].id,
+                is_published=True,
+            ),
+        ]
+    )
+
     db.commit()
-    print("✅ Database seeded with 20+ products, 6 categories, 4 brands, 2 users!")
+    ensure_expanded_seed_data(db)
+    ensure_content_seed_data(db)
+    ensure_default_chatbot_key(db)
+    print("✅ Database seeded with users, catalog, discounts, and blog content!")

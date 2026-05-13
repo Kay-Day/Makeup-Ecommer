@@ -7,3 +7,17 @@ from app.models.product import Product
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.discount_setting import DiscountSetting
+from app.models.pricing_tier import PricingTier
+from app.models.chatbot_api_key import ChatbotApiKey
+from app.models.discount_code import DiscountCode
+from app.models.blog_category import BlogCategory
+from app.models.blog_article import BlogArticle
+from app.models.notification import Notification
+from app.models.product_review import ProductReview
+from app.models.wishlist_item import WishlistItem
+from app.models.product_image import ProductImage
+from app.models.banner import Banner
+from app.models.product_discount import ProductDiscount
+from app.models.combo import Combo
+from app.models.combo_item import ComboItem
+from app.models.wholesale_tier import WholesaleTier

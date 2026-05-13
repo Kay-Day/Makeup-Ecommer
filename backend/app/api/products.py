@@ -1,9 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import Optional
-from app.core.deps import get_db, require_admin
+from app.core.deps import get_db, require_admin, get_current_user
 from app.models.product import Product
-from app.schemas import ProductOut, ProductCreate, ProductUpdate
+from app.models.user import User
+from app.models.product_review import ProductReview
+from app.models.product_image import ProductImage
+from app.models.product_discount import ProductDiscount
+from app.schemas import ProductOut, ProductCreate, ProductUpdate, ReviewCreate, ReviewOut, ProductImageOut
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -19,7 +24,7 @@ def list_products(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Product).options(joinedload(Product.category), joinedload(Product.brand)).filter(Product.is_active == True)
+    q = db.query(Product).options(joinedload(Product.category), joinedload(Product.brand), joinedload(Product.discount)).filter(Product.is_active == True)
     if category_id:
         q = q.filter(Product.category_id == category_id)
     if brand_id:
@@ -36,7 +41,7 @@ def list_products(
 
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(Product).options(joinedload(Product.category), joinedload(Product.brand)).filter(Product.id == product_id).first()
+    product = db.query(Product).options(joinedload(Product.category), joinedload(Product.brand), joinedload(Product.discount)).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
@@ -68,3 +73,72 @@ def delete_product(product_id: int, db: Session = Depends(get_db), admin=Depends
     db.delete(product)
     db.commit()
     return {"detail": "Product deleted"}
+
+
+# --- Product Reviews ---
+
+@router.get("/{product_id}/reviews", response_model=list[ReviewOut])
+def list_product_reviews(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return (
+        db.query(ProductReview)
+        .options(joinedload(ProductReview.user))
+        .filter(ProductReview.product_id == product_id)
+        .order_by(ProductReview.created_at.desc())
+        .all()
+    )
+
+
+@router.post("/{product_id}/reviews", response_model=ReviewOut)
+def create_product_review(
+    product_id: int,
+    data: ReviewCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if data.rating < 1 or data.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+
+    existing = (
+        db.query(ProductReview)
+        .filter(ProductReview.product_id == product_id, ProductReview.user_id == user.id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already reviewed this product")
+
+    review = ProductReview(
+        product_id=product_id,
+        user_id=user.id,
+        rating=data.rating,
+        comment=data.comment,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return (
+        db.query(ProductReview)
+        .options(joinedload(ProductReview.user))
+        .filter(ProductReview.id == review.id)
+        .first()
+    )
+
+
+# --- Product Images ---
+
+@router.get("/{product_id}/images", response_model=list[ProductImageOut])
+def list_product_images(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return (
+        db.query(ProductImage)
+        .filter(ProductImage.product_id == product_id)
+        .order_by(ProductImage.sort_order.asc(), ProductImage.id.asc())
+        .all()
+    )

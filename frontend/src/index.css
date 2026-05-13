@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -58,12 +59,12 @@
   --spacing-container-max: 1280px;
   --spacing-section-padding: 120px;
 
-  --font-h1: Manrope, sans-serif;
-  --font-label-caps: Manrope, sans-serif;
-  --font-h3: Manrope, sans-serif;
-  --font-body-md: Manrope, sans-serif;
-  --font-body-lg: Manrope, sans-serif;
-  --font-h2: Manrope, sans-serif;
+  --font-h1: Roboto, sans-serif;
+  --font-label-caps: Roboto, sans-serif;
+  --font-h3: Roboto, sans-serif;
+  --font-body-md: Roboto, sans-serif;
+  --font-body-lg: Roboto, sans-serif;
+  --font-h2: Roboto, sans-serif;
 
   --text-h1: 48px;
   --text-h1--line-height: 1.2;
@@ -115,7 +116,7 @@
 
 @layer base {
   body {
-    font-family: 'Manrope', sans-serif;
+    font-family: 'Roboto', sans-serif;
     background-color: var(--color-background);
     color: var(--color-on-surface);
   }
@@ -123,4 +124,9 @@
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
 }

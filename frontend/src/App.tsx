@@ -14,6 +14,8 @@ import { OurStoryPage } from './pages/OurStoryPage';
 import { BlogPage } from './pages/BlogPage';
 import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
+import { CombosPage } from './pages/CombosPage';
+import { ComboDetailPage } from './pages/ComboDetailPage';
 
 function App() {
   return (
@@ -32,7 +34,8 @@ function App() {
           <Route path="philosophy" element={<OurStoryPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="blog/:id" element={<ArticlePage />} />
-          {/* We will add more routes here as we build them */}
+          <Route path="combos" element={<CombosPage />} />
+          <Route path="combo/:id" element={<ComboDetailPage />} />
         </Route>
         <Route path="/login" element={<SignInPage />} />
         <Route path="/admin" element={<AdminOverviewPage />} />

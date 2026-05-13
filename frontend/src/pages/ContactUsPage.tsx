@@ -1,13 +1,10 @@
-import { useTranslation } from 'react-i18next';
-
 export function ContactUsPage() {
-  const { t } = useTranslation();
   return (
     <div className="pb-section-padding px-8 md:px-16 max-w-[1440px] mx-auto mt-12">
       <header className="mb-16 text-center">
         <h1 className="font-h1 text-4xl md:text-5xl font-bold text-primary mb-4">Liên Hệ Với Chúng Tôi</h1>
         <p className="font-body-lg text-lg text-on-surface-variant max-w-2xl mx-auto">
-          CÔNG TY TNHH TMC Medical luôn sẵn sàng lắng nghe và hỗ trợ bạn trên hành trình chăm sóc sắc đẹp hoàn mỹ.
+          CÔNG TY TNHH TMC luôn sẵn sàng lắng nghe và hỗ trợ bạn trên hành trình chăm sóc sắc đẹp hoàn mỹ.
         </p>
       </header>
       

@@ -1,10 +1,14 @@
+import { useTranslation } from 'react-i18next';
+
 export function FloatingContact() {
+  const { t } = useTranslation();
+
   return (
-    <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
-      
+    <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-3 sm:bottom-28 sm:right-8 sm:gap-4">
+
       {/* Phone Icon */}
-      <a 
-        href="tel:0766669266" 
+      <a
+        href="tel:0766669266"
         className="w-14 h-14 bg-[#4CAF50] rounded-full shadow-[0_10px_30px_rgba(76,175,80,0.4)] flex items-center justify-center hover:scale-110 transition-transform relative group animate-float"
         style={{ animationDuration: '3s' }}
       >
@@ -16,10 +20,10 @@ export function FloatingContact() {
       </a>
 
       {/* Zalo Icon */}
-      <a 
-        href="https://zalo.me/0393409881" 
-        target="_blank" 
-        rel="noopener noreferrer" 
+      <a
+        href="https://zalo.me/0393409881"
+        target="_blank"
+        rel="noopener noreferrer"
         className="w-14 h-14 bg-white rounded-full shadow-[0_10px_30px_rgba(0,132,255,0.3)] flex items-center justify-center hover:scale-110 transition-transform relative group animate-float"
         style={{ animationDuration: '3.5s' }}
       >
@@ -28,7 +32,7 @@ export function FloatingContact() {
           Zalo
         </div>
         <span className="absolute right-full mr-4 bg-[#0068FF] text-white px-4 py-2 rounded-lg shadow-lg font-bold text-sm text-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          Chat Zalo ngay
+          {t('floating_contact.zalo_chat')}
         </span>
       </a>
 

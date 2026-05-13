@@ -1,202 +1,96 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { blogApi, type BlogArticle, type BlogCategory } from '../services/api';
 
 export function BlogPage() {
   const { t } = useTranslation();
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [articles, setArticles] = useState<BlogArticle[]>([]);
+  const [activeCategory, setActiveCategory] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [categoriesResponse, articlesResponse] = await Promise.all([
+          blogApi.getCategories(),
+          blogApi.getArticles(activeCategory ? { category_id: activeCategory } : undefined),
+        ]);
+        setCategories(categoriesResponse.data);
+        setArticles(articlesResponse.data);
+      } catch (error) {
+        console.error('Failed to load blog data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadData();
+  }, [activeCategory]);
+
+  const featured = articles[0];
+  const remaining = articles.slice(1);
+
   return (
-    <div className="pt-20">
-      <header className="mb-16 text-center max-w-3xl mx-auto pt-12">
-        <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-4 block">{t('blog.label')}</span>
-        <h1 className="font-h1 text-4xl md:text-5xl font-bold text-on-surface mb-6">{t('blog.title')}</h1>
-        <p className="font-body-lg text-lg text-on-surface-variant">{t('blog.description')}</p>
-      </header>
+    <div className="px-6 pb-24 pt-20 md:px-12">
+      <div className="mx-auto max-w-7xl">
+        <header className="max-w-3xl py-12">
+          <p className="text-xs font-bold uppercase tracking-[0.35em] text-emerald-700">{t('article.blog_label')}</p>
+          <h1 className="mt-4 text-4xl font-bold text-stone-900 md:text-5xl">{t('article.blog_title')}</h1>
+          <p className="mt-5 text-lg text-stone-600">{t('article.blog_desc')}</p>
+        </header>
 
-      <section className="flex flex-wrap justify-center gap-4 mb-20 border-b border-outline-variant pb-8 px-8 max-w-[1440px] mx-auto">
-        <button className="px-6 py-2 rounded-full bg-secondary-fixed text-on-secondary-fixed font-manrope text-sm font-semibold hover:bg-secondary-container transition-all active:scale-95">{t('blog.all_articles')}</button>
-        <button className="px-6 py-2 rounded-full bg-white border border-outline-variant text-on-surface-variant font-manrope text-sm font-semibold hover:bg-surface-container transition-all active:scale-95">{t('blog.skincare')}</button>
-        <button className="px-6 py-2 rounded-full bg-white border border-outline-variant text-on-surface-variant font-manrope text-sm font-semibold hover:bg-surface-container transition-all active:scale-95">{t('blog.doctor_qa')}</button>
-        <button className="px-6 py-2 rounded-full bg-white border border-outline-variant text-on-surface-variant font-manrope text-sm font-semibold hover:bg-surface-container transition-all active:scale-95">{t('blog.treatment')}</button>
-        <button className="px-6 py-2 rounded-full bg-white border border-outline-variant text-on-surface-variant font-manrope text-sm font-semibold hover:bg-surface-container transition-all active:scale-95">{t('blog.wellness')}</button>
-      </section>
-
-      <section className="mb-24 px-8 md:px-16 max-w-[1440px] mx-auto">
-        <div className="relative group overflow-hidden rounded-xl bg-white border border-outline-variant shadow-[0_30px_60px_rgba(79,95,63,0.05)] cursor-pointer">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-            <div className="h-[400px] lg:h-[600px] overflow-hidden">
-              <img 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                alt="Featured Article Header" 
-                src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800"
-              />
-            </div>
-            <div className="p-12 flex flex-col justify-center bg-white relative z-10 lg:-ml-10 lg:rounded-l-3xl shadow-[-20px_0_40px_rgba(0,0,0,0.05)]">
-              <span className="font-label-caps text-xs font-bold text-primary-container uppercase tracking-widest mb-4">{t('blog.featured')}</span>
-              <h2 className="font-h2 text-3xl font-bold text-on-surface mb-6 leading-tight group-hover:text-primary transition-colors">The Science of Barrier Repair: Why Vietnam's Climate Demands a Specialized Approach</h2>
-              <p className="font-body-lg text-lg text-on-surface-variant mb-8">Dr. Nguyen Minh Thao explores the delicate relationship between tropical humidity and the skin's lipid barrier, revealing why standard European skincare protocols often fail in Southeast Asian urban environments.</p>
-              
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant">
-                  <img 
-                    alt="Dr. Thao Profile" 
-                    className="w-full h-full object-cover"
-                    src="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800"
-                  />
-                </div>
-                <div>
-                  <p className="font-manrope font-bold text-on-surface">Dr. Nguyen Minh Thao</p>
-                  <p className="text-xs text-on-surface-variant">Chief Dermatologist, TMC Medical</p>
-                </div>
-              </div>
-              
-              <div className="inline-flex items-center text-primary-container font-bold group-hover:underline">
-                {t('blog.read_full')}
-                <span className="material-symbols-outlined ml-2 transition-transform group-hover:translate-x-2">arrow_forward</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 px-8 md:px-16 max-w-[1440px] mx-auto">
-        {/* Article 1 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Skincare routine visuals" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Skincare Routines</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">Retinol 101: Navigating Your First Professional Prescription</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">Everything you need to know about starting vitamin A treatments, managing the adjustment period, and achieving that sought-after clinical glow safely.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Article 2 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Clinical procedure" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Treatment Insights</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">Pico-Second Lasers: The New Gold Standard for Pigmentation</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">A deep dive into how ultra-fast light pulses break down melanin without heat damage, specifically tailored for Asian skin types prone to PIH.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Article 3 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Doctor consultation" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1599305090598-fe179d501227?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Doctor Q&A</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">Ask the Expert: Truths and Myths About Adult Acne</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">Dr. Le Hoang answers your most frequent questions about persistent breakouts, hormonal triggers, and the role of clinical dietetics.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Article 4 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Microscopic view" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Treatment Insights</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">The Bio-remodeling Revolution: Profhilo Explained</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">Understanding the mechanism of injectable hyaluronic acid and how it differs from traditional dermal fillers for skin hydration and laxity.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Article 5 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Modern clinical architecture" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Philosophy</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">Creating Sanctuary: The Architecture of Clinical Calm</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">A conversation with our lead designer on why TMC Medical prioritizes environmental wellness and quiet luxury as part of the healing journey.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Article 6 */}
-        <article className="flex flex-col group cursor-pointer">
-          <div className="aspect-[4/5] rounded-lg overflow-hidden mb-6 border border-outline-variant">
-            <img 
-              alt="Dermatologist at work" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800"
-            />
-          </div>
-          <div className="flex-1">
-            <span className="font-label-caps text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Doctor Q&A</span>
-            <h3 className="font-h3 text-xl font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">Sun Protection Strategies for the Modern Urbanite</h3>
-            <p className="font-body-md text-on-surface-variant mb-6 line-clamp-3">Beyond SPF: Dr. Pham on HEV blue light protection and why re-application is your most important skincare step in the digital age.</p>
-            <div className="font-manrope font-bold text-primary group-hover:opacity-70 transition-opacity flex items-center">
-              Read More
-              <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">chevron_right</span>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="mt-32 mb-32 p-16 rounded-3xl bg-surface-container text-center max-w-[1000px] mx-auto border border-outline-variant shadow-[0_4px_30px_rgba(79,95,63,0.03)] mx-4 md:mx-auto">
-        <h2 className="font-h2 text-3xl md:text-4xl font-bold text-primary mb-4">{t('blog.newsletter_title')}</h2>
-        <p className="font-body-lg text-lg text-on-surface-variant mb-8 max-w-xl mx-auto">{t('blog.newsletter_desc')}</p>
-        <form className="flex flex-col md:flex-row gap-4 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
-          <input 
-            className="flex-1 rounded-lg border-outline-variant bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none h-12 px-6 shadow-sm transition-shadow" 
-            placeholder={t('blog.newsletter_placeholder')}
-            type="email"
-          />
-          <button 
-            className="bg-primary-container text-white px-8 h-12 rounded-lg font-manrope font-bold hover:bg-primary transition-colors active:scale-95"
-            type="submit"
+        <div className="mb-10 flex flex-wrap gap-3">
+          <button
+            className={`rounded-full px-5 py-2 text-sm font-semibold ${activeCategory === null ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+            onClick={() => setActiveCategory(null)}
           >
-            {t('blog.subscribe')}
+            {t('article.all')}
           </button>
-        </form>
-        <p className="text-[10px] text-stone-400 mt-6 font-manrope font-bold uppercase tracking-widest">{t('blog.newsletter_note')}</p>
-      </section>
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              className={`rounded-full px-5 py-2 text-sm font-semibold ${activeCategory === category.id ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+              onClick={() => setActiveCategory(category.id)}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+
+        {loading ? <div className="py-20 text-center text-stone-500">{t('article.loading')}</div> : null}
+
+        {!loading && featured ? (
+          <Link to={`/blog/${featured.id}`} className="mb-16 grid overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-sm lg:grid-cols-2">
+            <img className="h-full min-h-80 w-full object-cover" src={featured.image_url || ''} alt={featured.title} />
+            <div className="flex flex-col justify-center p-8 md:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.35em] text-emerald-700">{featured.category?.name || t('article.featured')}</p>
+              <h2 className="mt-4 text-3xl font-bold text-stone-900">{featured.title}</h2>
+              <p className="mt-4 line-clamp-4 text-stone-600">{featured.content}</p>
+              <div className="mt-8 text-sm font-semibold text-emerald-800">
+                {featured.author?.full_name || featured.author?.email} - {featured.created_at ? new Date(featured.created_at).toLocaleDateString('vi-VN') : ''}
+              </div>
+            </div>
+          </Link>
+        ) : null}
+
+        {!loading ? (
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {remaining.map((article) => (
+              <Link key={article.id} to={`/blog/${article.id}`} className="overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1">
+                <img className="aspect-[4/3] w-full object-cover" src={article.image_url || ''} alt={article.title} />
+                <div className="p-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">{article.category?.name}</p>
+                  <h3 className="mt-3 text-xl font-bold text-stone-900">{article.title}</h3>
+                  <p className="mt-3 line-clamp-3 text-stone-600">{article.content}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

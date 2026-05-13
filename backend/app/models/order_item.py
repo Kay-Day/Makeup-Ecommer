@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey
+from sqlalchemy import Column, Integer, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -10,6 +10,9 @@ class OrderItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Float, nullable=False)
+    combo_id = Column(Integer, ForeignKey("combos.id"), nullable=True)
+    combo_discount_percent = Column(Integer, nullable=True)
 
     order = relationship("Order", back_populates="items")
-    product = relationship("Product")
+    product = relationship("Product", backref="order_items")
+    combo = relationship("Combo", backref="order_items")

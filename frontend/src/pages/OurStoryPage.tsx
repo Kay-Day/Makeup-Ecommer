@@ -1,7 +1,20 @@
+import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 export function OurStoryPage() {
   const { t } = useTranslation();
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (!carouselRef.current) return;
+    const scrollAmount = 400;
+    carouselRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <div className="pt-20">
       {/* Hero: Our Philosophy */}
@@ -12,9 +25,9 @@ export function OurStoryPage() {
             <h1 className="font-h1 text-5xl md:text-6xl font-bold text-on-surface">{t('about.title')}</h1>
             <p className="font-body-lg text-lg text-on-surface-variant max-w-xl">{t('about.description')}</p>
             <div className="pt-4">
-              <button className="bg-primary text-white px-8 py-4 rounded-lg font-semibold hover:bg-primary-container transition-all active:scale-95">
+              <Link to="/shop" className="inline-block bg-primary text-white px-8 py-4 rounded-lg font-semibold hover:bg-primary-container transition-all active:scale-95">
                 {t('about.discover_btn')}
-              </button>
+              </Link>
             </div>
           </div>
           <div className="md:col-span-6 relative">
@@ -86,16 +99,16 @@ export function OurStoryPage() {
               <p className="font-body-md text-on-surface-variant">{t('about.team_desc')}</p>
             </div>
             <div className="flex space-x-4">
-              <button className="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all active:scale-95">
+              <button onClick={() => scrollCarousel('left')} className="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all active:scale-95">
                 <span className="material-symbols-outlined text-on-surface">arrow_back</span>
               </button>
-              <button className="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all active:scale-95">
+              <button onClick={() => scrollCarousel('right')} className="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-all active:scale-95">
                 <span className="material-symbols-outlined text-on-surface">arrow_forward</span>
               </button>
             </div>
           </div>
 
-          <div className="flex overflow-x-auto gap-8 pb-12 snap-x hide-scrollbar scroll-smooth">
+          <div ref={carouselRef} className="flex overflow-x-auto gap-8 pb-12 snap-x hide-scrollbar scroll-smooth">
             {/* Doctor 1 */}
             <div className="min-w-[320px] md:min-w-[400px] snap-start group cursor-pointer">
               <div className="aspect-[3/4] rounded-2xl overflow-hidden mb-6 relative">
@@ -203,12 +216,12 @@ export function OurStoryPage() {
           <h2 className="font-h1 text-4xl md:text-5xl font-bold text-white">{t('about.cta_title')}</h2>
           <p className="font-body-lg text-lg text-primary-fixed">{t('about.cta_desc')}</p>
           <div className="flex flex-col md:flex-row gap-4 justify-center pt-8">
-            <button className="bg-white text-primary px-10 py-5 rounded-lg font-bold hover:bg-surface transition-all active:scale-95 shadow-lg">
+            <Link to="/contact" className="bg-white text-primary px-10 py-5 rounded-lg font-bold hover:bg-surface transition-all active:scale-95 shadow-lg text-center">
               {t('about.book_btn')}
-            </button>
-            <button className="border-2 border-white/30 text-white px-10 py-5 rounded-lg font-bold hover:bg-white/10 transition-all active:scale-95">
+            </Link>
+            <Link to="/shop" className="border-2 border-white/30 text-white px-10 py-5 rounded-lg font-bold hover:bg-white/10 transition-all active:scale-95 text-center">
               {t('about.view_treatments')}
-            </button>
+            </Link>
           </div>
         </div>
       </section>

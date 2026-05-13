@@ -12,10 +12,10 @@ const faqData = [
   },
   {
     question: "Are the procedures performed by certified MDs?",
-    answer: "Yes. All invasive and advanced laser procedures at TMC Medical are performed exclusively by board-certified dermatologists. Our support staff and aestheticians undergo rigorous medical training to assist under direct physician supervision."
+    answer: "Yes. All invasive and advanced laser procedures at TMC are performed exclusively by board-certified dermatologists. Our support staff and aestheticians undergo rigorous medical training to assist under direct physician supervision."
   },
   {
-    question: "What is TMC Medical's safety protocol?",
+    question: "What is TMC's safety protocol?",
     answer: "We adhere strictly to international clinical standards. All equipment is sterilized using hospital-grade autoclaves, and our treatment rooms feature advanced air filtration. Your safety and comfort in a pristine environment are our absolute priorities."
   }
 ];
@@ -23,10 +23,28 @@ const faqData = [
 export function FAQPage() {
   const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [activeTab, setActiveTab] = useState<string>('treatments');
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
 
   const toggleFAQ = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      setSubscribed(true);
+      setEmail('');
+    }
+  };
+
+  const tabs = [
+    { key: 'treatments', icon: 'medical_services', label: t('faq.tab_treatments') },
+    { key: 'orders', icon: 'shopping_cart', label: t('faq.tab_orders') },
+    { key: 'safety', icon: 'verified_user', label: t('faq.tab_safety') },
+    { key: 'stores', icon: 'location_on', label: t('faq.tab_stores') },
+  ];
 
   return (
     <div className="pt-12 pb-section-padding">
@@ -35,14 +53,14 @@ export function FAQPage() {
         <div className="max-w-3xl mx-auto">
           <span className="font-label-caps text-xs font-bold uppercase tracking-widest text-primary mb-4 block">{t('faq.label')}</span>
           <h1 className="font-h1 text-4xl md:text-5xl font-bold text-on-surface mb-8">{t('faq.title')}</h1>
-          
+
           <div className="relative group">
             <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
               <span className="material-symbols-outlined text-outline text-2xl">search</span>
             </div>
-            <input 
-              className="w-full pl-16 pr-8 py-6 bg-white rounded-2xl border border-stone-200 shadow-[0_20px_50px_rgba(79,95,63,0.05)] focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all text-lg font-manrope" 
-              placeholder={t('faq.search_placeholder')} 
+            <input
+              className="w-full pl-16 pr-8 py-6 bg-white rounded-2xl border border-stone-200 shadow-[0_20px_50px_rgba(79,95,63,0.05)] focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all text-lg font-manrope"
+              placeholder={t('faq.search_placeholder')}
               type="text"
             />
             <div className="absolute inset-y-0 right-4 flex items-center">
@@ -55,22 +73,20 @@ export function FAQPage() {
       {/* Category Bento Grid & Tabs */}
       <section className="max-w-[1440px] mx-auto px-8 md:px-16 mb-16">
         <div className="flex flex-wrap justify-center gap-4 mb-16">
-          <button className="px-8 py-3 rounded-full bg-primary-container text-white font-h3 text-[16px] font-bold shadow-lg shadow-primary-container/20 flex items-center gap-2 transition-transform active:scale-95">
-            <span className="material-symbols-outlined">medical_services</span>
-            {t('faq.tab_treatments')}
-          </button>
-          <button className="px-8 py-3 rounded-full bg-white text-secondary font-h3 text-[16px] font-bold border border-stone-200 hover:bg-stone-50 transition-all flex items-center gap-2 active:scale-95">
-            <span className="material-symbols-outlined">shopping_cart</span>
-            {t('faq.tab_orders')}
-          </button>
-          <button className="px-8 py-3 rounded-full bg-white text-secondary font-h3 text-[16px] font-bold border border-stone-200 hover:bg-stone-50 transition-all flex items-center gap-2 active:scale-95">
-            <span className="material-symbols-outlined">verified_user</span>
-            {t('faq.tab_safety')}
-          </button>
-          <button className="px-8 py-3 rounded-full bg-white text-secondary font-h3 text-[16px] font-bold border border-stone-200 hover:bg-stone-50 transition-all flex items-center gap-2 active:scale-95">
-            <span className="material-symbols-outlined">location_on</span>
-            {t('faq.tab_stores')}
-          </button>
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-8 py-3 rounded-full font-h3 text-[16px] font-bold flex items-center gap-2 transition-all active:scale-95 ${
+                activeTab === tab.key
+                  ? 'bg-primary-container text-white shadow-lg shadow-primary-container/20'
+                  : 'bg-white text-secondary border border-stone-200 hover:bg-stone-50'
+              }`}
+            >
+              <span className="material-symbols-outlined">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-5xl mx-auto">
@@ -103,7 +119,10 @@ export function FAQPage() {
             <div className="bg-secondary-fixed p-8 rounded-3xl text-on-secondary-fixed">
               <h3 className="font-h3 text-2xl font-bold mb-4">{t('faq.still_questions')}</h3>
               <p className="font-body-md mb-6 opacity-80">{t('faq.still_questions_desc')}</p>
-              <button className="w-full bg-primary-container text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98]">
+              <button
+                onClick={() => document.querySelector<HTMLButtonElement>('[data-chatbot-toggle]')?.click()}
+                className="w-full bg-primary-container text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98]"
+              >
                 <span className="material-symbols-outlined">chat_bubble</span>
                 {t('faq.live_chat')}
               </button>
@@ -118,7 +137,7 @@ export function FAQPage() {
               />
               <div className="absolute bottom-6 left-6 z-20 text-white">
                 <p className="font-h3 text-[20px] font-bold">{t('faq.visit_flagship')}</p>
-                <p className="text-sm opacity-80 mt-1">District 1, Ho Chi Minh City</p>
+                <p className="mt-1 text-sm opacity-80">Quận 1, TP. Hồ Chí Minh</p>
               </div>
             </div>
           </div>
@@ -131,17 +150,19 @@ export function FAQPage() {
           <div className="max-w-2xl mx-auto">
             <h2 className="font-h2 text-4xl font-bold mb-4 text-on-surface">{t('faq.newsletter_title')}</h2>
             <p className="font-body-lg text-lg text-on-surface-variant mb-10">{t('faq.newsletter_desc')}</p>
-            <form className="flex flex-col md:flex-row gap-4" onSubmit={(e) => e.preventDefault()}>
-              <input 
-                className="flex-1 px-8 py-4 rounded-full border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-primary outline-none transition-shadow" 
+            <form className="flex flex-col md:flex-row gap-4" onSubmit={handleNewsletterSubmit}>
+              <input
+                className="flex-1 px-8 py-4 rounded-full border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-primary outline-none transition-shadow"
                 placeholder={t('faq.email_placeholder')}
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              <button 
-                className="bg-primary text-white px-10 py-4 rounded-full font-bold hover:bg-primary-container transition-colors active:scale-95" 
+              <button
+                className="bg-primary text-white px-10 py-4 rounded-full font-bold hover:bg-primary-container transition-colors active:scale-95"
                 type="submit"
               >
-                {t('faq.subscribe')}
+                {subscribed ? '✓ ' : ''}{t('faq.subscribe')}
               </button>
             </form>
           </div>
