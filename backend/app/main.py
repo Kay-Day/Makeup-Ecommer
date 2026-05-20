@@ -7,6 +7,7 @@ from app.db.base import Base
 from app.db.seed import seed_database
 from app.db.schema_sync import sync_runtime_schema
 from app.api import auth, products, categories, brands, orders, admin, content, uploads, notifications, chatbot, wishlist, banners, combos
+from app.core.config import settings
 
 app = FastAPI(title="TMC Medical E-Commerce API", version="1.0.0")
 
@@ -16,7 +17,7 @@ upload_dir.mkdir(parents=True, exist_ok=True)
 # CORS - allow frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

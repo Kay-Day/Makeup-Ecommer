@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { toast } from './toast';
+export { API_BASE_URL, UPLOADS_BASE_URL } from '../config/server';
+import { API_BASE_URL as CONFIG_API_BASE_URL } from '../config/server';
 
-export const API_BASE_URL = 'http://localhost:8000/api';
-export const UPLOADS_BASE_URL = 'http://localhost:8000/uploads';
+// Localhost config moved to ../config/server.ts for easier switching.
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: CONFIG_API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 

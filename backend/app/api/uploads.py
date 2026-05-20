@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.core.deps import require_admin
+from app.core.config import settings
 from app.models.user import User
 
 router = APIRouter(prefix="/uploads", tags=["Uploads"])
@@ -30,6 +31,6 @@ async def upload_image(
 
     return {
         "filename": filename,
-        "url": f"http://localhost:8000/uploads/{filename}",
+        "url": f"{settings.PUBLIC_BASE_URL.rstrip('/')}/uploads/{filename}",
         "uploaded_by": admin.email,
     }

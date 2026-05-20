@@ -1,15 +1,3 @@
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
+from app.core.config import Settings, settings
 
-load_dotenv()
-
-class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://postgres:123456@localhost:5432/TMC"
-    SECRET_KEY: str = "tmc-medical-secret-key-2024-makeup-ecommerce"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
+__all__ = ["Settings", "settings"]
