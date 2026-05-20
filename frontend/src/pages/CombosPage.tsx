@@ -99,9 +99,9 @@ function ComboCard({ combo }: { combo: Combo }) {
 
   return (
     <Link to={`/combo/${combo.id}`} className="group block">
-      <div className="bg-white rounded-2xl overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1.5">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1.5 h-full flex flex-col">
         {/* Image Section */}
-        <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
+        <div className="relative aspect-[16/10] overflow-hidden bg-stone-100 shrink-0">
           <img
             src={combo.image_url || ''}
             alt={combo.name}
@@ -110,60 +110,62 @@ function ComboCard({ combo }: { combo: Combo }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
           {/* Discount badge */}
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-3 right-3">
             <span className="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
               -{combo.discount_percent}%
             </span>
           </div>
 
-          {/* Product thumbnails */}
-          <div className="absolute bottom-4 left-4 flex -space-x-3">
-            {combo.items.slice(0, 4).map((item, idx) => (
-              <div
-                key={item.id}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white overflow-hidden shadow-md"
-                style={{ zIndex: 4 - idx }}
-              >
-                {item.product?.image_url ? (
-                  <img src={item.product.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-stone-200 flex items-center justify-center text-[8px] text-stone-400">TMC</div>
-                )}
-              </div>
-            ))}
-            {combo.items.length > 4 && (
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-emerald-800 flex items-center justify-center text-[10px] font-bold text-white shadow-md" style={{ zIndex: 0 }}>
-                +{combo.items.length - 4}
-              </div>
-            )}
+          {/* Combo name overlay on image */}
+          <div className="absolute bottom-3 left-4 right-4">
+            <h3 className="font-bold text-white text-lg drop-shadow-lg line-clamp-1">
+              {combo.name}
+            </h3>
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="p-5 md:p-6">
-          <h3 className="font-bold text-on-surface text-base md:text-lg mb-2 line-clamp-2 group-hover:text-emerald-800 transition-colors">
-            {combo.name}
-          </h3>
-          <p className="text-stone-400 text-xs md:text-sm line-clamp-2 mb-4">{combo.description}</p>
+        {/* Products List - this is the "sổ sản phẩm" part */}
+        <div className="p-4 md:p-5 flex-1 flex flex-col">
+          <p className="text-stone-400 text-xs line-clamp-2 mb-4">{combo.description}</p>
 
-          {/* Pricing */}
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-xs text-stone-400 line-through">{currency(combo.original_price ?? 0)}</p>
-              <p className="text-lg md:text-xl font-extrabold text-red-600">{currency(combo.discounted_price ?? 0)}</p>
-            </div>
-            <div className="text-right">
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-                <span className="material-symbols-outlined text-sm">savings</span>
+          {/* Each product in the combo shown clearly */}
+          <div className="space-y-2 mb-4 flex-1">
+            {combo.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 bg-stone-50 rounded-xl p-2 group/item hover:bg-emerald-50 transition-colors">
+                <div className="w-12 h-12 rounded-lg bg-white overflow-hidden shrink-0 border border-stone-100">
+                  {item.product?.image_url ? (
+                    <img src={item.product.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-stone-400">TMC</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-stone-700 truncate group-hover/item:text-emerald-800 transition-colors">
+                    {item.product?.name ?? t('combos.product_fallback', { id: item.product_id })}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-stone-400">{t('combos.qty', { count: item.quantity })}</span>
+                    {item.product?.retail_price && (
+                      <span className="text-xs font-semibold text-stone-500">{currency(item.product.retail_price)}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pricing section */}
+          <div className="border-t border-stone-100 pt-3">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[11px] text-stone-400 line-through leading-tight">{currency(combo.original_price ?? 0)}</p>
+                <p className="text-lg font-extrabold text-red-600 leading-tight">{currency(combo.discounted_price ?? 0)}</p>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
+                <span className="material-symbols-outlined text-[14px]">savings</span>
                 {t('combos.savings', { amount: currency(savings) })}
               </span>
             </div>
-          </div>
-
-          {/* Items count */}
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-stone-500">
-            <span className="material-symbols-outlined text-sm">inventory_2</span>
-            {t('combos.items_count', { count: combo.items.length })}
           </div>
         </div>
       </div>

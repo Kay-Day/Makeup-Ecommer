@@ -693,79 +693,297 @@ def ensure_combo_seed_data(db: Session, products: list) -> None:
     def find_product(name_contains: str):
         return db.query(Product).filter(Product.name.ilike(f"%{name_contains}%")).first()
 
-    def add_items(combo: Combo, item_names: list[str]):
+    def add_items(combo: Combo, items_spec: list[tuple[str, int]]):
+        """Add items to a combo if not already populated. Each spec is (product_name_fragment, quantity)."""
         if db.query(ComboItem).filter(ComboItem.combo_id == combo.id).first():
             return
-        for name in item_names:
+        for name, qty in items_spec:
             p = find_product(name)
             if p:
-                db.add(ComboItem(combo_id=combo.id, product_id=p.id, quantity=1))
+                db.add(ComboItem(combo_id=combo.id, product_id=p.id, quantity=qty))
 
-    # Combo 1: Bộ Chăm Sóc Da Cơ Bản (15% off)
-    c1 = get_or_create_combo(
+    # ── SKINCARE COMBOS (8) ──────────────────────────────────────────────
+
+    # 1: Bộ Chăm Sóc Da Cơ Bản (15% off)
+    c = get_or_create_combo(
         db,
         name="Bộ Chăm Sóc Da Cơ Bản",
-        description="Combo thiết yếu cho routine chăm sóc da hàng ngày: làm sạch sâu, phục hồi da và chống nắng. Tiết kiệm 15% so với mua lẻ.",
+        description="Combo thiết yếu cho routine chăm sóc da hàng ngày: làm sạch sâu với Niacinamide, cấp ẩm với Hyaluronic Acid và khóa ẩm với Moisture Surge. Tiết kiệm 15% so với mua lẻ.",
         image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
         discount_percent=15,
         is_active=True,
     )
-    add_items(c1, ["Niacinamide", "Hyaluronic Acid", "Moisture Surge"])
+    add_items(c, [("Niacinamide", 1), ("Hyaluronic Acid", 1), ("Moisture Surge", 1)])
 
-    # Combo 2: Bộ Trang Điểm Cơ Bản (10% off)
-    c2 = get_or_create_combo(
-        db,
-        name="Bộ Trang Điểm Cơ Bản",
-        description="Tất cả những gì bạn cần cho lớp makeup hoàn hảo mỗi ngày: son môi, mascara và bảng phấn mắt 9 ô chuyên nghiệp.",
-        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
-        discount_percent=10,
-        is_active=True,
-    )
-    add_items(c2, ["Ruby Woo", "Voluminous Mascara", "Eye Shadow"])
-
-    # Combo 3: Cặp Nước Hoa Cao Cấp (20% off)
-    c3 = get_or_create_combo(
-        db,
-        name="Cặp Nước Hoa Cao Cấp",
-        description="Bộ đôi nước hoa tinh tế cho nam và nữ: hương gỗ ấm áp của Velvet Teddy và hương hoa quả tươi mát của Paradise Garden.",
-        image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
-        discount_percent=20,
-        is_active=True,
-    )
-    add_items(c3, ["Paradise Garden", "Velvet Teddy"])
-
-    # Combo 4: Bộ Dưỡng Ẩm Chuyên Sâu (12% off)
-    c4 = get_or_create_combo(
+    # 2: Bộ Dưỡng Ẩm Chuyên Sâu (12% off)
+    c = get_or_create_combo(
         db,
         name="Bộ Dưỡng Ẩm Chuyên Sâu",
-        description="Combo cấp ẩm toàn diện cho làn da khô ráp: serum HA cấp nước, gel dưỡng oil-free và kem dưỡng 72h chuyên sâu.",
+        description="Combo cấp ẩm toàn diện cho làn da khô ráp: serum HA cấp nước tức thì, gel dưỡng oil-free Dramatically Different và kem dưỡng Moisture Surge 72h chuyên sâu.",
         image_url="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800",
         discount_percent=12,
         is_active=True,
     )
-    add_items(c4, ["Hyaluronic Acid", "Dramatically Different", "Moisture Surge"])
+    add_items(c, [("Hyaluronic Acid", 1), ("Dramatically Different", 1), ("Moisture Surge", 1)])
 
-    # Combo 5: Son Môi Signature (25% off)
-    c5 = get_or_create_combo(
-        db,
-        name="Bộ Sưu Tập Son Môi Signature",
-        description="Bộ ba son môi biểu tượng từ MAC và L'Oréal: đỏ Ruby Woo huyền thoại, Velvet Teddy quyến rũ và Color Riche hồng nude tự nhiên.",
-        image_url="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
-        discount_percent=25,
-        is_active=True,
-    )
-    add_items(c5, ["Ruby Woo", "Velvet Teddy", "Color Riche"])
-
-    # Combo 6: Skincare Routine Đầy Đủ (18% off)
-    c6 = get_or_create_combo(
+    # 3: Skincare Routine Đầy Đủ (18% off)
+    c = get_or_create_combo(
         db,
         name="Skincare Routine Đầy Đủ",
-        description="Routine chăm sóc da hoàn chỉnh: serum Niacinamide trị mụn, HA cấp ẩm, Revitalift chống lão hóa và kem dưỡng 72h khóa ẩm.",
+        description="Routine chăm sóc da hoàn chỉnh: serum Niacinamide trị mụn, HA cấp ẩm, Revitalift chống lão hóa và kem dưỡng Moisture Surge khóa ẩm suốt 72h.",
         image_url="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=800",
         discount_percent=18,
         is_active=True,
     )
-    add_items(c6, ["Niacinamide", "Hyaluronic Acid", "Revitalift", "Moisture Surge"])
+    add_items(c, [("Niacinamide", 1), ("Hyaluronic Acid", 1), ("Revitalift", 1), ("Moisture Surge", 1)])
+
+    # 4: Bộ Trị Mụn & Phục Hồi Da (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trị Mụn & Phục Hồi Da",
+        description="Giải pháp toàn diện cho làn da mụn và tổn thương: Niacinamide kiểm soát bã nhờn, Cicaplast Baume B5+ phục hồi và Sensibio H2O làm sạch dịu nhẹ.",
+        image_url="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Niacinamide", 1), ("Cicaplast", 1), ("Sensibio", 1)])
+
+    # 5: Bộ Chống Lão Hóa Chuyên Sâu (20% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Chống Lão Hóa Chuyên Sâu",
+        description="Đầu tư cho làn da tương lai: Revitalift Serum vitamin C giảm nếp nhăn, HA cấp ẩm đa tầng và Moisture Surge khóa ẩm liên tục 72h.",
+        image_url="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&q=80&w=800",
+        discount_percent=20,
+        is_active=True,
+    )
+    add_items(c, [("Revitalift", 1), ("Hyaluronic Acid", 1), ("Moisture Surge", 1)])
+
+    # 6: Bộ Bảo Vệ Da Ban Ngày (10% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Bảo Vệ Da Ban Ngày",
+        description="Lá chắn hoàn hảo mỗi sáng: Anthelios UVMune 400 chống nắng phổ rộng, Moisture Surge dưỡng ẩm nhẹ và Cicaplast phục hồi hàng rào bảo vệ da.",
+        image_url="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+        discount_percent=10,
+        is_active=True,
+    )
+    add_items(c, [("Anthelios", 1), ("Moisture Surge", 1), ("Cicaplast", 1)])
+
+    # 7: Bộ Làm Sạch & Dưỡng Ẩm (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Làm Sạch & Dưỡng Ẩm",
+        description="Nền tảng cho làn da khỏe mạnh: Take The Day Off làm sạch sâu, Sensibio H2O tẩy trang dịu nhẹ và Dramatically Different Gel dưỡng ẩm oil-free.",
+        image_url="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Take The Day Off", 1), ("Sensibio", 1), ("Dramatically Different", 1)])
+
+    # 8: Bộ Dưỡng Ẩm Chuyên Sâu Cho Da Nhạy Cảm (12% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Dưỡng Ẩm Cho Da Nhạy Cảm",
+        description="Chăm sóc nhẹ nhàng cho làn da nhạy cảm nhất: Atoderm Intensive Gel-Cream dưỡng ẩm sâu, Cicaplast Baume B5+ làm dịu và Sensibio H2O tẩy trang không cồn.",
+        image_url="https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c, [("Atoderm", 1), ("Cicaplast", 1), ("Sensibio", 1)])
+
+    # ── MAKEUP COMBOS (7) ─────────────────────────────────────────────────
+
+    # 9: Bộ Trang Điểm Cơ Bản (10% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Cơ Bản",
+        description="Tất cả những gì bạn cần cho lớp makeup hoàn hảo mỗi ngày: son Ruby Woo huyền thoại, Voluminous Mascara dày mi gấp 5 và bảng phấn mắt 9 ô chuyên nghiệp.",
+        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+        discount_percent=10,
+        is_active=True,
+    )
+    add_items(c, [("Ruby Woo Lipstick", 1), ("Voluminous Mascara", 1), ("Eye Shadow", 1)])
+
+    # 10: Bộ Trang Điểm Mắt Chuyên Nghiệp (18% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Mắt Chuyên Nghiệp",
+        description="Bộ sưu tập đầy đủ cho đôi mắt cuốn hút: bảng mắt MAC 9 ô, 3 mascara best-seller và cọ tán 217S blending brush chuyên nghiệp.",
+        image_url="https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=800",
+        discount_percent=18,
+        is_active=True,
+    )
+    add_items(c, [("Eye Shadow", 1), ("Voluminous Mascara", 1), ("Sky High", 1), ("Panorama", 1), ("217S", 1)])
+
+    # 11: Bộ Trang Điểm Nền Hoàn Hảo (12% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Nền Hoàn Hảo",
+        description="Lớp nền mịn màng không tì vết: True Match Foundation, Studio Fix Powder kiềm dầu, Even Better Foundation dưỡng da và Infallible Blender tán đều.",
+        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c, [("True Match", 1), ("Studio Fix", 1), ("Even Better", 1), ("Infallible Blender", 1)])
+
+    # 12: Bộ Sưu Tập Son Môi Signature (25% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Sưu Tập Son Môi Signature",
+        description="Bộ ba son môi biểu tượng: đỏ Ruby Woo huyền thoại, Velvet Teddy nâu đất quyến rũ và Color Riche hồng nude tự nhiên cho mọi phong cách.",
+        image_url="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
+        discount_percent=25,
+        is_active=True,
+    )
+    add_items(c, [("Ruby Woo Lipstick", 1), ("Velvet Teddy", 1), ("Color Riche", 1)])
+
+    # 13: Bộ Son Môi Tông Tây Sang Trọng (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Son Môi Tông Tây Sang Trọng",
+        description="Ba sắc son chuẩn gu Tây: MAC Locked Kiss đỏ rực rỡ, Maybelline Vinyl Ink Witty nâu hồng bóng mướt và Clinique Pop Lip cam đào thanh lịch.",
+        image_url="https://images.unsplash.com/photo-1599305090598-fe179d501227?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Locked Kiss", 1), ("Vinyl Ink", 1), ("Pop Lip", 1)])
+
+    # 14: Bộ Trang Điểm Tự Nhiên Hằng Ngày (12% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Tự Nhiên Hằng Ngày",
+        description="Vẻ đẹp tự nhiên chỉ trong 5 phút: True Match Foundation nền mịn, Voluminous Mascara mi cong và Color Riche Satin son dưỡng mềm môi.",
+        image_url="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c, [("True Match", 1), ("Voluminous Mascara", 1), ("Color Riche", 1)])
+
+    # 15: Bộ Trang Điểm Dự Tiệc (18% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Trang Điểm Dự Tiệc",
+        description="Tỏa sáng mọi bữa tiệc: Studio Fix Powder nền lì hoàn hảo, Eye Shadow x9 Palette mắt khói quyến rũ và Ruby Woo son đỏ huyền thoại.",
+        image_url="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+        discount_percent=18,
+        is_active=True,
+    )
+    add_items(c, [("Studio Fix", 1), ("Eye Shadow", 1), ("Ruby Woo Lipstick", 1)])
+
+    # ── FRAGRANCE COMBOS (4) ──────────────────────────────────────────────
+
+    # 16: Cặp Nước Hoa Cao Cấp (20% off)
+    c = get_or_create_combo(
+        db,
+        name="Cặp Nước Hoa Cao Cấp",
+        description="Bộ đôi nước hoa tinh tế: Paradise Garden hương hoa quả tươi mát cho nàng và Shadescents Velvet Teddy hương gỗ ấm áp cho chàng.",
+        image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
+        discount_percent=20,
+        is_active=True,
+    )
+    add_items(c, [("Paradise Garden", 1), ("Shadescents", 1)])
+
+    # 17: Bộ Sưu Tập Nước Hoa Sang Trọng (22% off)
+    c = get_or_create_combo(
+        db,
+        name="Bộ Sưu Tập Nước Hoa Sang Trọng",
+        description="Trọn bộ 4 nước hoa đẳng cấp: Paradise Garden tươi mát, Happy cam quýt năng động, Shadescents Velvet Teddy gỗ ấm và Aromatics Elixir cổ điển tinh tế.",
+        image_url="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800",
+        discount_percent=22,
+        is_active=True,
+    )
+    add_items(c, [("Paradise Garden", 1), ("Happy", 1), ("Shadescents", 1), ("Aromatics Elixir", 1)])
+
+    # 18: Nước Hoa Ngày & Đêm (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Nước Hoa Ngày & Đêm",
+        description="Một cặp cho mọi thời khắc: Clinique Happy tươi sáng rạng rỡ ban ngày và Shadescents Velvet Teddy ấm áp quyến rũ cho buổi tối.",
+        image_url="https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Happy", 1), ("Shadescents", 1)])
+
+    # 19: Cặp Nước Hoa Tươi Mát (12% off)
+    c = get_or_create_combo(
+        db,
+        name="Cặp Nước Hoa Tươi Mát",
+        description="Bộ đôi hương thơm thanh khiết: Paradise Garden hoa quả vườn địa đàng và Clinique Happy cam quýt sảng khoái - hoàn hảo cho mùa hè.",
+        image_url="https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c, [("Paradise Garden", 1), ("Happy", 1)])
+
+    # ── CROSS-CATEGORY / GIFT COMBOS (6) ──────────────────────────────────
+
+    # 20: Combo Tân Trang Toàn Diện (18% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Tân Trang Toàn Diện",
+        description="Trọn bộ makeup từ A-Z: True Match nền mịn, Eye Shadow 9 ô, Ruby Woo son đỏ, Voluminous Mascara mi dày và cọ 217S chuyên nghiệp.",
+        image_url="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800",
+        discount_percent=18,
+        is_active=True,
+    )
+    add_items(c, [("True Match", 1), ("Eye Shadow", 1), ("Ruby Woo Lipstick", 1), ("Voluminous Mascara", 1), ("217S", 1)])
+
+    # 21: Combo Quà Tặng Cao Cấp (20% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Quà Tặng Cao Cấp",
+        description="Món quà hoàn hảo cho người thương: Shadescents Velvet Teddy nước hoa sang trọng, Ruby Woo son đỏ biểu tượng và Eye Shadow x9 bảng mắt chuyên nghiệp.",
+        image_url="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+        discount_percent=20,
+        is_active=True,
+    )
+    add_items(c, [("Shadescents", 1), ("Ruby Woo Lipstick", 1), ("Eye Shadow", 1)])
+
+    # 22: Combo Chăm Sóc Bản Thân Trọn Vẹn (12% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Chăm Sóc Bản Thân Trọn Vẹn",
+        description="Nuông chiều bản thân từ trong ra ngoài: Cicaplast phục hồi da, Anthelios bảo vệ da, Happy Perfume nước hoa tươi vui và Vinyl Ink Witty son môi rạng rỡ.",
+        image_url="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800",
+        discount_percent=12,
+        is_active=True,
+    )
+    add_items(c, [("Cicaplast", 1), ("Anthelios", 1), ("Happy", 1), ("Vinyl Ink", 1)])
+
+    # 23: Combo Mùa Hè Rực Rỡ (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Mùa Hè Rực Rỡ",
+        description="Sẵn sàng cho mùa hè năng động: Anthelios UVMune 400 chống nắng tối ưu, Paradise Garden nước hoa tươi mát, Sky High Mascara mi dài và Pop Lip Colour cam đào.",
+        image_url="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Anthelios", 1), ("Paradise Garden", 1), ("Sky High", 1), ("Pop Lip", 1)])
+
+    # 24: Combo Cô Dâu (25% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Cô Dâu Lộng Lẫy",
+        description="Tỏa sáng trong ngày trọng đại: Even Better Foundation nền dưỡng da, Studio Fix Powder kiềm dầu bền suốt ngày, Eye Shadow x9 tạo điểm nhấn và Ruby Woo son đỏ cô dâu.",
+        image_url="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800",
+        discount_percent=25,
+        is_active=True,
+    )
+    add_items(c, [("Even Better", 1), ("Studio Fix", 1), ("Eye Shadow", 1), ("Ruby Woo Lipstick", 1)])
+
+    # 25: Combo Skincare & Makeup Cơ Bản (15% off)
+    c = get_or_create_combo(
+        db,
+        name="Combo Skincare & Makeup Cơ Bản",
+        description="Khởi đầu hoàn hảo cho người mới bắt đầu: Niacinamide trị mụn, Moisture Surge dưỡng ẩm, True Match nền mịn và Color Riche son nude tự nhiên.",
+        image_url="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+        discount_percent=15,
+        is_active=True,
+    )
+    add_items(c, [("Niacinamide", 1), ("Moisture Surge", 1), ("True Match", 1), ("Color Riche", 1)])
 
     db.commit()
 
