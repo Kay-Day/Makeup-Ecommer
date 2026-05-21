@@ -24,6 +24,7 @@ import {
   type Product,
   type ProductDiscount,
   type ProductImage,
+  type SePayWebhookLog,
   type UserOut,
   type Combo,
 } from '../services/api';
@@ -59,6 +60,26 @@ function currency(value: number) {
 function formatDate(value: string | null | undefined) {
   if (!value) return 'Chưa có';
   return new Date(value).toLocaleString('vi-VN');
+}
+
+function paymentMethodLabel(order: Order) {
+  if (order.payment_method === 'sepay') return 'SePay QR';
+  if (order.payment_method === 'cod') return 'COD';
+  return order.payment_method || 'Không rõ';
+}
+
+function paymentStatusLabel(order: Order) {
+  if (order.payment_method === 'cod') return 'Thanh toán khi nhận hàng';
+  if (order.payment_status === 'paid') return 'Đã thanh toán';
+  if (order.payment_status === 'failed') return 'Thanh toán lỗi';
+  return 'Chờ thanh toán';
+}
+
+function paymentStatusTone(order: Order) {
+  if (order.payment_method === 'cod') return 'bg-stone-100 text-stone-700';
+  if (order.payment_status === 'paid') return 'bg-emerald-100 text-emerald-700';
+  if (order.payment_status === 'failed') return 'bg-rose-100 text-rose-700';
+  return 'bg-amber-100 text-amber-700';
 }
 
 function ImageField({
@@ -144,6 +165,7 @@ export function AdminOverviewPage() {
   const [productDiscounts, setProductDiscounts] = useState<ProductDiscount[]>([]);
   const [productImages, setProductImages] = useState<Record<number, ProductImage[]>>({});
   const [combos, setCombos] = useState<Combo[]>([]);
+  const [sepayLogs, setSepayLogs] = useState<SePayWebhookLog[]>([]);
   const [comboForm, setComboForm] = useState({ id: 0, name: '', description: '', image_url: '', discount_percent: 0, is_active: true });
   const [comboItemsForm, setComboItemsForm] = useState<{ product_id: number; quantity: number }[]>([]);
   const [newComboItem, setNewComboItem] = useState({ product_id: 0, quantity: 1 });
@@ -241,6 +263,11 @@ export function AdminOverviewPage() {
     end_time: '',
     is_active: true,
   });
+
+  const selectTab = (tab: AdminTab) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  };
 
   const resetUserForm = () => setUserForm({ id: 0, email: '', password: '', full_name: '', phone: '', role: 'customer', is_active: true });
   const resetBrandForm = () => setBrandForm({ id: 0, name: '', logo_url: '' });
@@ -357,6 +384,7 @@ export function AdminOverviewPage() {
         adminApi.getBanners(),
         adminApi.getProductDiscounts(),
         adminApi.getCombos(),
+        adminApi.getSePayWebhookLogs(),
       ]);
 
       setDashboard(responses[0].data);
@@ -376,6 +404,7 @@ export function AdminOverviewPage() {
       setBanners(responses[14].data);
       setProductDiscounts(responses[15].data);
       setCombos(responses[16].data);
+      setSepayLogs(responses[17].data);
     } catch (loadError: any) {
       setError(loadError?.response?.data?.detail || 'Không tải được dữ liệu admin.');
     } finally {
@@ -1044,15 +1073,15 @@ export function AdminOverviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3ead5,transparent_24%),radial-gradient(circle_at_top_right,#efe5d2,transparent_22%),linear-gradient(180deg,#faf7f1_0%,#fdfcf9_100%)] text-stone-900">
-      <div className="mx-auto flex max-w-[1660px] gap-6 px-4 py-6 lg:px-6">
-        <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-72 rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,#fffef9_0%,#f3ecde_100%)] p-6 text-stone-900 shadow-[0_28px_70px_rgba(166,145,103,0.14)] lg:block">
-          <div className="mb-8">
+    <div className="min-h-screen bg-[#f7f3ea] text-stone-900">
+      <div className="mx-auto flex max-w-[1680px] gap-5 px-4 py-5 lg:px-6">
+        <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-72 shrink-0 flex-col overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/88 p-5 text-stone-900 shadow-[0_24px_70px_rgba(97,75,38,0.12)] backdrop-blur-xl lg:flex">
+          <div className="mb-5 shrink-0">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#a68146]">TMC Admin</p>
-            <h1 className="mt-3 text-3xl font-bold">{t('admin.subtitle')}</h1>
-            <p className="mt-2 text-sm text-stone-600">{t('admin.subtitle_desc')}</p>
+            <h1 className="mt-3 text-2xl font-bold leading-tight">{t('admin.subtitle')}</h1>
+            <p className="mt-2 text-sm leading-6 text-stone-600">{t('admin.subtitle_desc')}</p>
           </div>
-          <nav className="space-y-2">
+          <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
             {[
               ['dashboard', t('admin.tab_dashboard')],
               ['users', t('admin.tab_users')],
@@ -1070,44 +1099,42 @@ export function AdminOverviewPage() {
             ].map(([key, label]) => (
               <button
                 key={key}
-                className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  activeTab === key ? 'bg-[linear-gradient(135deg,#b38847_0%,#d8bc84_100%)] text-white shadow-[0_12px_25px_rgba(179,136,71,0.24)]' : 'text-stone-700 hover:bg-white/70'
+                className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                  activeTab === key ? 'bg-[#163126] text-white shadow-[0_12px_25px_rgba(22,49,38,0.18)]' : 'text-stone-700 hover:bg-stone-50'
                 }`}
-                onClick={() => setActiveTab(key as AdminTab)}
+                onClick={() => selectTab(key as AdminTab)}
               >
                 {label}
               </button>
             ))}
           </nav>
-          <div className="mt-6 rounded-2xl border border-white/70 bg-white/75 p-4 text-sm text-stone-800">
+          <div className="mt-4 shrink-0 rounded-2xl border border-stone-100 bg-[#fbf7ee] p-4 text-sm text-stone-800">
             <p className="text-xs uppercase tracking-[0.25em] text-[#a68146]">{t('admin.notifications_label')}</p>
             <p className="mt-2 text-3xl font-bold">{unreadNotificationCount}</p>
           </div>
-          <div className="mt-auto rounded-2xl border border-white/70 bg-white/75 p-4 text-sm text-stone-800">
+          <div className="mt-3 shrink-0 rounded-2xl border border-stone-100 bg-white p-4 text-sm text-stone-800">
             <p className="font-semibold">{currentUser.full_name}</p>
             <p className="mt-1 text-stone-500">{currentUser.email}</p>
           </div>
         </aside>
 
         <main className="flex-1">
-          <div className="rounded-[2rem] border border-white/80 bg-white/75 p-5 shadow-[0_25px_90px_rgba(165,146,109,0.1)] backdrop-blur md:p-8">
-            <div className="relative mb-8 overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(135deg,#fffaf1_0%,#f3e7cf_52%,#ead7b6_100%)] p-6 text-stone-900 shadow-[0_24px_55px_rgba(177,150,101,0.15)] md:p-8">
-              <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/45 blur-2xl" />
-              <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-[#d4b07a]/25 blur-2xl" />
+          <div className="rounded-[1.75rem] border border-white/80 bg-white/82 p-4 shadow-[0_24px_80px_rgba(97,75,38,0.1)] backdrop-blur md:p-6">
+            <div className="relative mb-6 overflow-hidden rounded-[1.5rem] border border-stone-100 bg-[linear-gradient(135deg,#fffaf2_0%,#f5ead7_100%)] p-5 text-stone-900 shadow-[0_18px_45px_rgba(119,91,43,0.12)] md:p-7">
               <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#a68146]">Luxury Admin Console</p>
-                  <h2 className="mt-3 text-4xl font-bold">Dashboard quản trị sang hơn, mượt hơn</h2>
-                  <p className="mt-3 max-w-2xl text-stone-600">
+                  <h2 className="mt-3 text-3xl font-bold leading-tight md:text-4xl">Dashboard quản trị sang hơn, mượt hơn</h2>
+                  <p className="mt-3 max-w-2xl leading-6 text-stone-600">
                     Quản lý đầy đủ CRUD, theo dõi đơn hàng realtime, nhận thông báo ngay khi có đơn mới và cập nhật trạng thái cho khách hàng.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <div className="rounded-2xl border border-white/80 bg-white/65 px-4 py-3 backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 backdrop-blur">
                     <p className="text-xs uppercase tracking-[0.22em] text-stone-500">Unread</p>
                     <p className="mt-2 text-2xl font-bold">{unreadNotificationCount}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/80 bg-white/65 px-4 py-3 backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 backdrop-blur">
                     <p className="text-xs uppercase tracking-[0.22em] text-stone-500">Orders</p>
                     <p className="mt-2 text-2xl font-bold">{orders.length}</p>
                   </div>
@@ -1115,9 +1142,9 @@ export function AdminOverviewPage() {
               </div>
             </div>
 
-            <div className="mb-6 flex flex-col gap-4 border-b border-stone-100 pb-6 md:flex-row md:items-center md:justify-between">
+            <div className="mb-5 flex flex-col gap-4 border-b border-stone-100 pb-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-stone-900">{t('admin.title')}</h2>
+                <h2 className="text-2xl font-bold text-stone-900 md:text-3xl">{t('admin.title')}</h2>
                 <p className="mt-1 text-stone-500">{t('admin.desc')}</p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -1127,7 +1154,7 @@ export function AdminOverviewPage() {
                 <button className="rounded-2xl bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] px-4 py-2 font-semibold text-white transition hover:brightness-105" onClick={() => void markAllNotificationsRead()}>
                   {t('admin.read_all')}
                 </button>
-                <Link className="rounded-2xl border border-stone-200 bg-white px-4 py-2 font-semibold text-stone-700 lg:hidden" to="#" onClick={() => setActiveTab('dashboard')}>
+                <Link className="rounded-2xl border border-stone-200 bg-white px-4 py-2 font-semibold text-stone-700 lg:hidden" to="#" onClick={() => selectTab('dashboard')}>
                   {t('admin.overview')}
                 </Link>
               </div>
@@ -1154,7 +1181,7 @@ export function AdminOverviewPage() {
                   className={`rounded-2xl px-4 py-2 text-sm font-semibold ${
                     activeTab === key ? 'bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] text-white' : 'bg-white text-stone-700'
                   }`}
-                  onClick={() => setActiveTab(key as AdminTab)}
+                  onClick={() => selectTab(key as AdminTab)}
                 >
                   {label}
                 </button>
@@ -1442,11 +1469,13 @@ export function AdminOverviewPage() {
 
             {!loading && activeTab === 'orders' ? (
               <AdminSection title="Quản lý đơn hàng">
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-6">
                   <MetricTile label="Tổng đơn" value={String(orders.length)} tone="emerald" />
                   <MetricTile label="Chờ xử lý" value={String(orders.filter((order) => order.status === 'pending').length)} tone="amber" />
                   <MetricTile label="Đang giao" value={String(orders.filter((order) => order.status === 'shipped').length)} tone="blue" />
                   <MetricTile label="Đã giao" value={String(orders.filter((order) => order.status === 'delivered').length)} tone="stone" />
+                  <MetricTile label="SePay đã trả" value={String(orders.filter((order) => order.payment_method === 'sepay' && order.payment_status === 'paid').length)} tone="emerald" />
+                  <MetricTile label="SePay chờ" value={String(orders.filter((order) => order.payment_method === 'sepay' && order.payment_status !== 'paid').length)} tone="amber" />
                 </div>
                 <Table>
                   <thead>
@@ -1456,6 +1485,7 @@ export function AdminOverviewPage() {
                       <Th>Tổng tiền</Th>
                       <Th>Loại giá</Th>
                       <Th>Tiết kiệm</Th>
+                      <Th>Thanh toán</Th>
                       <Th>Trạng thái</Th>
                       <Th></Th>
                     </tr>
@@ -1480,10 +1510,23 @@ export function AdminOverviewPage() {
                         <Td>
                           <div className="font-semibold text-stone-800">{order.pricing_label || order.applied_price_type}</div>
                           <div className="text-xs text-stone-500">
-                            {order.payment_method === 'cod' ? 'COD' : order.payment_method || 'Không rõ'} • {order.discount_code?.code ? `Mã: ${order.discount_code.code}` : 'Không dùng mã'}
+                            {order.discount_code?.code ? `Mã giảm: ${order.discount_code.code}` : 'Không dùng mã giảm'}
                           </div>
                         </Td>
                         <Td>{currency(order.total_discount_amount || 0)}</Td>
+                        <Td>
+                          <div className="font-semibold text-stone-800">{paymentMethodLabel(order)}</div>
+                          <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${paymentStatusTone(order)}`}>
+                            {paymentStatusLabel(order)}
+                          </span>
+                          {order.payment_method === 'sepay' ? (
+                            <div className="mt-2 space-y-1 text-xs text-stone-500">
+                              <div>Mã CK: <span className="font-semibold text-stone-800">{order.payment_code || 'Chưa có'}</span></div>
+                              <div>GD: {order.sepay_transaction_id || 'Chưa có'}</div>
+                              <div>Paid: {formatDate(order.paid_at)}</div>
+                            </div>
+                          ) : null}
+                        </Td>
                         <Td>
                           <select
                             className="rounded-xl border border-stone-200 bg-white px-3 py-2"
@@ -1530,6 +1573,64 @@ export function AdminOverviewPage() {
                     ))}
                   </tbody>
                 </Table>
+                <div className="rounded-[1.8rem] border border-stone-100 bg-white p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-stone-900">Webhook SePay gần đây</h3>
+                      <p className="mt-1 text-sm text-stone-500">Lưu từ database để đối soát giao dịch tiền vào và đơn hàng.</p>
+                    </div>
+                    <button
+                      className="rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50"
+                      onClick={() => void loadAdminData()}
+                      type="button"
+                    >
+                      Làm mới
+                    </button>
+                  </div>
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Thời gian</Th>
+                        <Th>Mã CK</Th>
+                        <Th>Số tiền</Th>
+                        <Th>Giao dịch</Th>
+                        <Th>Kết quả</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sepayLogs.length ? sepayLogs.slice(0, 12).map((log) => (
+                        <tr key={log.id} className="border-t border-stone-100">
+                          <Td>{formatDate(log.created_at)}</Td>
+                          <Td>
+                            <div className="font-semibold text-stone-800">{log.payment_code || 'Không có'}</div>
+                            <div className="text-xs text-stone-500">{log.account_number || 'Không rõ tài khoản'}</div>
+                          </Td>
+                          <Td>{currency(log.transfer_amount || 0)}</Td>
+                          <Td>
+                            <div className="font-semibold text-stone-800">{log.transaction_id}</div>
+                            <div className="text-xs text-stone-500">{log.reference_code || 'Không có reference'}</div>
+                          </Td>
+                          <Td>
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                              log.status === 'processed'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : log.status === 'rejected'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : 'bg-stone-100 text-stone-700'
+                            }`}>
+                              {log.status}
+                            </span>
+                            <div className="mt-1 text-xs text-stone-500">{log.message || 'Không có ghi chú'}</div>
+                          </Td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <Td colSpan={5}>Chưa có webhook SePay nào.</Td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
                 <div className="grid gap-4 lg:grid-cols-2">
                   {orders.slice(0, 4).map((order) => (
                     <div key={`panel-${order.id}`} className="rounded-[1.75rem] border border-stone-100 bg-[linear-gradient(180deg,#fffefa_0%,#f8f4ea_100%)] p-5">
@@ -2541,8 +2642,8 @@ function Th({ children }: { children?: ReactNode }) {
   return <th className="bg-[linear-gradient(180deg,#fffdf8_0%,#f7f1e6_100%)] px-4 py-3 text-xs font-bold uppercase tracking-wider text-stone-500">{children}</th>;
 }
 
-function Td({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <td className={`px-4 py-3 align-top text-stone-700 ${className}`}>{children}</td>;
+function Td({ children, className = '', colSpan }: { children: ReactNode; className?: string; colSpan?: number }) {
+  return <td className={`px-4 py-3 align-top text-stone-700 ${className}`} colSpan={colSpan}>{children}</td>;
 }
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {

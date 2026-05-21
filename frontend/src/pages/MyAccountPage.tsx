@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { authStorage, authApi, notificationApi, orderApi, wishlistApi, type CustomerPricingStatus, type NotificationItem, type Order, type WishlistItem } from '../services/api';
+import { authStorage, authApi, notificationApi, orderApi, wishlistApi, type CustomerPricingStatus, type NotificationItem, type Order, type UserOut, type WishlistItem } from '../services/api';
 
 function currency(value: number) {
   return `${value.toLocaleString('vi-VN')}đ`;
@@ -16,7 +16,7 @@ export function MyAccountPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const currentUser = authStorage.getUser();
+  const [currentUser, setCurrentUser] = useState<UserOut | null>(() => authStorage.getUser());
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
@@ -34,6 +34,11 @@ export function MyAccountPage() {
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const selectSection = (section: 'orders' | 'wishlist' | 'notifications' | 'profile') => {
+    setActiveSection(section);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (searchParams.get('order')) {
@@ -68,7 +73,7 @@ export function MyAccountPage() {
     };
 
     void loadData();
-  }, [currentUser, navigate]);
+  }, [currentUser?.id, navigate]);
 
   const unreadCount = useMemo(() => notifications.filter((item) => !item.is_read).length, [notifications]);
   const highlightedOrderId = searchParams.get('order') ? Number(searchParams.get('order')) : null;
@@ -131,6 +136,7 @@ export function MyAccountPage() {
         token_type: 'bearer',
         user: response.data,
       });
+      setCurrentUser(response.data);
       setProfileForm({
         full_name: response.data.full_name,
         phone: response.data.phone || '',
@@ -179,10 +185,10 @@ export function MyAccountPage() {
           </div>
 
           <nav className="mt-8 space-y-2">
-            <SidebarAction label={t('account.tab_orders')} active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />
-            <SidebarAction label={`${t('account.tab_wishlist')} ${wishlist.length ? `(${wishlist.length})` : ''}`} active={activeSection === 'wishlist'} onClick={() => setActiveSection('wishlist')} />
-            <SidebarAction label={`${t('account.tab_notifications')} ${unreadCount ? `(${unreadCount})` : ''}`} active={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} />
-            <SidebarAction label={t('account.tab_profile')} active={activeSection === 'profile'} onClick={() => setActiveSection('profile')} />
+            <SidebarAction label={t('account.tab_orders')} active={activeSection === 'orders'} onClick={() => selectSection('orders')} />
+            <SidebarAction label={`${t('account.tab_wishlist')} ${wishlist.length ? `(${wishlist.length})` : ''}`} active={activeSection === 'wishlist'} onClick={() => selectSection('wishlist')} />
+            <SidebarAction label={`${t('account.tab_notifications')} ${unreadCount ? `(${unreadCount})` : ''}`} active={activeSection === 'notifications'} onClick={() => selectSection('notifications')} />
+            <SidebarAction label={t('account.tab_profile')} active={activeSection === 'profile'} onClick={() => selectSection('profile')} />
           </nav>
 
           <div className="mt-auto rounded-[1.5rem] bg-white/10 p-5 backdrop-blur">
@@ -210,10 +216,10 @@ export function MyAccountPage() {
               </div>
 
               <div className="flex flex-wrap gap-3 lg:hidden">
-                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'orders' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => setActiveSection('orders')}>{t('account.mobile_orders')}</button>
-                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'wishlist' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => setActiveSection('wishlist')}>{t('account.mobile_wishlist')}</button>
-                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'notifications' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => setActiveSection('notifications')}>{t('account.mobile_notifications')}</button>
-                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'profile' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => setActiveSection('profile')}>{t('account.mobile_profile')}</button>
+                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'orders' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => selectSection('orders')}>{t('account.mobile_orders')}</button>
+                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'wishlist' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => selectSection('wishlist')}>{t('account.mobile_wishlist')}</button>
+                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'notifications' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => selectSection('notifications')}>{t('account.mobile_notifications')}</button>
+                <button className={`rounded-2xl px-4 py-2 text-sm font-semibold ${activeSection === 'profile' ? 'bg-emerald-900 text-white' : 'bg-stone-100 text-stone-700'}`} onClick={() => selectSection('profile')}>{t('account.mobile_profile')}</button>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,7 +19,7 @@ def _compute_combo_pricing(combo: Combo) -> tuple[float, float]:
             price = item.product.retail_price
             if item.product.discount:
                 disc = item.product.discount
-                now = datetime.now(timezone.utc)
+                now = datetime.now(disc.start_time.tzinfo) if disc.start_time and disc.start_time.tzinfo else datetime.now()
                 if disc.is_active and disc.start_time <= now <= disc.end_time:
                     price = price * (1 - disc.discount_percent / 100)
             original += price * item.quantity

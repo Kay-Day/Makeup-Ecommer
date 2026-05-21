@@ -100,6 +100,11 @@ export function HomePage() {
   const [flashEndTime, setFlashEndTime] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
+  const selectProductTab = (tab: 'new' | 'bestseller' | 'favorite') => {
+    setActiveProductTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     productApi.getAll({ limit: 12 }).then(res => setProducts(res.data)).catch(console.error);
     bannerApi.getAll().then(res => setBanners(res.data)).catch(() => setBanners([]));
@@ -365,7 +370,7 @@ export function HomePage() {
             {(['new', 'bestseller', 'favorite'] as const).map(tab => (
               <button
                 key={tab}
-                onClick={() => setActiveProductTab(tab)}
+                onClick={() => selectProductTab(tab)}
                 className={`text-lg md:text-2xl font-bold pb-3 whitespace-nowrap transition-colors ${
                   activeProductTab === tab
                     ? 'text-emerald-900 border-b-[3px] border-emerald-800'

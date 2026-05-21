@@ -28,6 +28,7 @@ from app.models.product_discount import ProductDiscount
 from app.models.combo import Combo
 from app.models.combo_item import ComboItem
 from app.models.wholesale_tier import WholesaleTier
+from app.models.sepay_webhook_log import SePayWebhookLog
 from app.services.notifications import create_notification
 from app.services.pricing import enrich_order_pricing, enrich_orders_pricing, get_pricing_rule_display
 from app.schemas import (
@@ -65,6 +66,7 @@ from app.schemas import (
     ProductImageReorder,
     ProductOut,
     ProductUpdate,
+    SePayWebhookLogOut,
     UserAdminCreate,
     UserAdminUpdate,
     UserOut,
@@ -609,6 +611,16 @@ def list_admin_orders(db: Session = Depends(get_db), admin: User = Depends(requi
     return enrich_orders_pricing(db, orders)
 
 
+@router.get("/sepay-webhook-logs", response_model=list[SePayWebhookLogOut])
+def list_sepay_webhook_logs(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    return (
+        db.query(SePayWebhookLog)
+        .order_by(SePayWebhookLog.created_at.desc(), SePayWebhookLog.id.desc())
+        .limit(100)
+        .all()
+    )
+
+
 @router.put("/orders/{order_id}", response_model=OrderOut)
 def update_admin_order(
     order_id: int,
@@ -730,6 +742,10 @@ def export_orders_report(db: Session = Depends(get_db), admin: User = Depends(re
             "shipping_fee",
             "total_amount",
             "payment_method",
+            "payment_status",
+            "payment_code",
+            "paid_at",
+            "sepay_transaction_id",
             "shipping_full_name",
             "shipping_phone",
             "shipping_address",
@@ -758,6 +774,10 @@ def export_orders_report(db: Session = Depends(get_db), admin: User = Depends(re
                 getattr(order, "shipping_fee", 0),
                 order.total_amount,
                 order.payment_method,
+                getattr(order, "payment_status", ""),
+                getattr(order, "payment_code", ""),
+                order.paid_at.isoformat() if getattr(order, "paid_at", None) else "",
+                getattr(order, "sepay_transaction_id", ""),
                 order.shipping_full_name,
                 order.shipping_phone,
                 order.shipping_address,
@@ -1198,7 +1218,7 @@ def _admin_enrich_combo(combo: Combo) -> dict:
             price = item.product.retail_price
             if item.product.discount:
                 disc = item.product.discount
-                now = datetime.now()
+                now = datetime.now(disc.start_time.tzinfo) if disc.start_time and disc.start_time.tzinfo else datetime.now()
                 if disc.is_active and disc.start_time <= now <= disc.end_time:
                     price = price * (1 - disc.discount_percent / 100)
             original += price * item.quantity

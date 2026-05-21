@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://160.22.107.119,http://160.22.107.119:5173,http://160.22.107.119:5174,http://160.22.107.119:3000"
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8000
+    AUTO_CREATE_TABLES: bool = True
+    AUTO_SEED_DATABASE: bool = True
+    SEPAY_BANK_NAME: str = ""
+    SEPAY_BANK_ACCOUNT: str = ""
+    SEPAY_ACCOUNT_NAME: str = ""
+    SEPAY_PAYMENT_PREFIX: str = "TMC"
+    SEPAY_WEBHOOK_AUTH_MODE: str = "hmac"
+    SEPAY_WEBHOOK_SECRET: str = "change-this-sepay-webhook-secret"
+    SEPAY_WEBHOOK_API_KEY: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:

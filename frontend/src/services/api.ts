@@ -174,6 +174,11 @@ export interface Order {
   shipping_fee?: number | null;
   subtotal_after_discount?: number | null;
   payment_method?: string | null;
+  payment_status?: string | null;
+  payment_code?: string | null;
+  sepay_qr_url?: string | null;
+  paid_at?: string | null;
+  sepay_transaction_id?: string | null;
   shipping_full_name?: string | null;
   shipping_phone?: string | null;
   shipping_address?: string | null;
@@ -237,6 +242,33 @@ export interface DiscountSetting {
 export interface CheckoutSettings {
   default_shipping_fee: number;
   payment_methods: string[];
+}
+
+export interface SePayPaymentStatus {
+  order_id: number;
+  payment_method: string;
+  payment_status: string;
+  payment_code: string | null;
+  total_amount: number;
+  qr_url: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
+  account_name: string | null;
+  paid_at: string | null;
+}
+
+export interface SePayWebhookLog {
+  id: number;
+  transaction_id: string;
+  payment_code: string | null;
+  transfer_amount: number;
+  transfer_type: string | null;
+  account_number: string | null;
+  reference_code: string | null;
+  status: string;
+  message: string | null;
+  raw_payload: string;
+  created_at: string | null;
 }
 
 export interface CustomerPricingStatus {
@@ -403,7 +435,7 @@ export const orderApi = {
     shipping_address: string;
     shipping_city: string;
     shipping_postal_code?: string;
-    payment_method: 'cod';
+    payment_method: 'cod' | 'sepay';
   }) =>
     api.post<Order>('/orders', payload),
   getAll: () => api.get<Order[]>('/orders'),
@@ -411,6 +443,10 @@ export const orderApi = {
   cancel: (id: number) => api.put<Order>(`/orders/${id}/cancel`),
   getPricingStatus: () => api.get<CustomerPricingStatus>('/orders/pricing-status'),
   getCheckoutSettings: () => api.get<CheckoutSettings>('/orders/checkout-settings'),
+};
+
+export const paymentApi = {
+  getSePayStatus: (orderId: number) => api.get<SePayPaymentStatus>(`/payments/sepay/orders/${orderId}`),
 };
 
 export const notificationApi = {
@@ -537,6 +573,7 @@ export const adminApi = {
   deleteProduct: (id: number) => api.delete(`/admin/products/${id}`),
 
   getOrders: () => api.get<Order[]>('/admin/orders'),
+  getSePayWebhookLogs: () => api.get<SePayWebhookLog[]>('/admin/sepay-webhook-logs'),
   updateOrder: (id: number, payload: { status?: string; tracking_number?: string }) =>
     api.put<Order>(`/admin/orders/${id}`, payload),
   deleteOrder: (id: number) => api.delete(`/admin/orders/${id}`),

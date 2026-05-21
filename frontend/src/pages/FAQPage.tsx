@@ -27,6 +27,11 @@ export function FAQPage() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
+  const selectTab = (tabKey: string) => {
+    setActiveTab(tabKey);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  };
+
   const toggleFAQ = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
@@ -76,7 +81,7 @@ export function FAQPage() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => selectTab(tab.key)}
               className={`px-8 py-3 rounded-full font-h3 text-[16px] font-bold flex items-center gap-2 transition-all active:scale-95 ${
                 activeTab === tab.key
                   ? 'bg-primary-container text-white shadow-lg shadow-primary-container/20'

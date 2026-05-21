@@ -20,6 +20,10 @@ def sync_runtime_schema(engine: Engine) -> None:
 
     order_columns = {
         "payment_method": "payment_method VARCHAR(20) DEFAULT 'cod'",
+        "payment_status": "payment_status VARCHAR(20) DEFAULT 'pending'",
+        "payment_code": "payment_code VARCHAR(50)",
+        "paid_at": "paid_at TIMESTAMP",
+        "sepay_transaction_id": "sepay_transaction_id VARCHAR(100)",
         "shipping_fee": "shipping_fee FLOAT DEFAULT 30000",
         "shipping_full_name": "shipping_full_name VARCHAR(255)",
         "shipping_phone": "shipping_phone VARCHAR(50)",
@@ -38,3 +42,9 @@ def sync_runtime_schema(engine: Engine) -> None:
     }
     for column_name, ddl in order_item_columns.items():
         _add_column_if_missing(engine, "order_items", column_name, ddl)
+
+    payment_columns = {
+        "transaction_id": "transaction_id VARCHAR(255)",
+    }
+    for column_name, ddl in payment_columns.items():
+        _add_column_if_missing(engine, "payments", column_name, ddl)

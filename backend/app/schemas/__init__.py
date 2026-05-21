@@ -288,7 +288,7 @@ class OrderCreate(BaseModel):
 
 class CheckoutSettingsOut(BaseModel):
     default_shipping_fee: float
-    payment_methods: list[str] = ["cod"]
+    payment_methods: list[str] = ["cod", "sepay"]
 
 class OrderItemOut(BaseModel):
     id: int
@@ -337,6 +337,11 @@ class OrderOut(BaseModel):
     shipping_fee: float = 0.0
     subtotal_after_discount: Optional[float] = None
     payment_method: str = "cod"
+    payment_status: str = "pending"
+    payment_code: Optional[str] = None
+    sepay_qr_url: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    sepay_transaction_id: Optional[str] = None
     shipping_full_name: Optional[str] = None
     shipping_phone: Optional[str] = None
     shipping_address: Optional[str] = None
@@ -350,6 +355,39 @@ class OrderAdminUpdate(BaseModel):
     status: Optional[str] = None
     tracking_number: Optional[str] = None
 
+
+class SePayPaymentStatusOut(BaseModel):
+    order_id: int
+    payment_method: str
+    payment_status: str
+    payment_code: Optional[str] = None
+    total_amount: float
+    qr_url: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account: Optional[str] = None
+    account_name: Optional[str] = None
+    paid_at: Optional[datetime] = None
+
+
+class SePayWebhookResponse(BaseModel):
+    success: bool
+
+
+class SePayWebhookLogOut(BaseModel):
+    id: int
+    transaction_id: str
+    payment_code: Optional[str] = None
+    transfer_amount: int
+    transfer_type: Optional[str] = None
+    account_number: Optional[str] = None
+    reference_code: Optional[str] = None
+    status: str
+    message: Optional[str] = None
+    raw_payload: str
+    created_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
 # --- Notification ---
 class NotificationOut(BaseModel):
     id: int
@@ -361,6 +399,40 @@ class NotificationOut(BaseModel):
     created_at: Optional[datetime]
     class Config:
         from_attributes = True
+
+
+# --- Wholesale Tier ---
+class WholesaleTierCreate(BaseModel):
+    name: str
+    min_order_total: float
+    max_order_total: Optional[float] = None
+    discount_percent: float = 0.0
+    is_active: bool = True
+    note: Optional[str] = None
+
+
+class WholesaleTierUpdate(BaseModel):
+    name: Optional[str] = None
+    min_order_total: Optional[float] = None
+    max_order_total: Optional[float] = None
+    discount_percent: Optional[float] = None
+    is_active: Optional[bool] = None
+    note: Optional[str] = None
+
+
+class WholesaleTierOut(BaseModel):
+    id: int
+    name: str
+    min_order_total: float
+    max_order_total: Optional[float] = None
+    discount_percent: float
+    is_active: bool
+    note: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
 
 # --- Discount Setting ---
 class DiscountSettingOut(BaseModel):
@@ -517,39 +589,6 @@ class BannerOut(BaseModel):
     sort_order: int
     is_active: bool
     created_at: Optional[datetime] = None
-    class Config:
-        from_attributes = True
-
-
-# --- Wholesale Tier ---
-class WholesaleTierCreate(BaseModel):
-    name: str
-    min_order_total: float
-    max_order_total: Optional[float] = None
-    discount_percent: float = 0.0
-    is_active: bool = True
-    note: Optional[str] = None
-
-
-class WholesaleTierUpdate(BaseModel):
-    name: Optional[str] = None
-    min_order_total: Optional[float] = None
-    max_order_total: Optional[float] = None
-    discount_percent: Optional[float] = None
-    is_active: Optional[bool] = None
-    note: Optional[str] = None
-
-
-class WholesaleTierOut(BaseModel):
-    id: int
-    name: str
-    min_order_total: float
-    max_order_total: Optional[float] = None
-    discount_percent: float
-    is_active: bool
-    note: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 

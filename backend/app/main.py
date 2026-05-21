@@ -6,7 +6,7 @@ from app.db.database import engine, SessionLocal
 from app.db.base import Base
 from app.db.seed import seed_database
 from app.db.schema_sync import sync_runtime_schema
-from app.api import auth, products, categories, brands, orders, admin, content, uploads, notifications, chatbot, wishlist, banners, combos
+from app.api import auth, products, categories, brands, orders, admin, content, uploads, notifications, chatbot, wishlist, banners, combos, payments
 from app.core.config import settings
 
 app = FastAPI(title="TMC Medical E-Commerce API", version="1.0.0")
@@ -37,19 +37,23 @@ app.include_router(chatbot.router, prefix="/api")
 app.include_router(wishlist.router, prefix="/api")
 app.include_router(banners.router, prefix="/api")
 app.include_router(combos.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 @app.on_event("startup")
 def on_startup():
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    sync_runtime_schema(engine)
-    # Seed data
-    db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
+    if settings.AUTO_CREATE_TABLES:
+        Base.metadata.create_all(bind=engine)
+        sync_runtime_schema(engine)
+        print("Database schema is ready.")
+
+    if settings.AUTO_SEED_DATABASE:
+        db = SessionLocal()
+        try:
+            seed_database(db)
+            print("Database seed is ready.")
+        finally:
+            db.close()
 
 @app.get("/")
 def root():

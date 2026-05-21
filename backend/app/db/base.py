@@ -21,3 +21,5 @@ from app.models.product_discount import ProductDiscount
 from app.models.combo import Combo
 from app.models.combo_item import ComboItem
 from app.models.wholesale_tier import WholesaleTier
+from app.models.payment import Payment
+from app.models.sepay_webhook_log import SePayWebhookLog

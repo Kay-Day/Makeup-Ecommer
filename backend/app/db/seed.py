@@ -141,6 +141,23 @@ def ensure_default_chatbot_key(db: Session):
     db.commit()
 
 
+def ensure_default_admin_user(db: Session) -> User:
+    admin = db.query(User).filter(User.role == "admin").order_by(User.id.asc()).first()
+    if admin:
+        return admin
+    admin = User(
+        email="admin@tmc.vn",
+        hashed_password=get_password_hash("admin123"),
+        full_name="TMC Admin",
+        phone="0766669266",
+        role="admin",
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+
 def get_or_create_user(db: Session, *, email: str, password: str, full_name: str, phone: str, role: str = "customer") -> User:
     user = db.query(User).filter(User.email == email).first()
     if user:
@@ -1078,8 +1095,12 @@ def ensure_content_seed_data(db: Session) -> None:
 
 def seed_database(db: Session):
     """Seed initial data if database is empty."""
+    is_empty_database = db.query(User).first() is None
+    if not is_empty_database:
+        ensure_default_admin_user(db)
+
     # Check if already seeded
-    if db.query(User).first():
+    if not is_empty_database:
         ensure_default_discount_setting(db)
         ensure_default_pricing_tiers(db)
         ensure_default_wholesale_tiers(db)

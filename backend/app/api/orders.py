@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.discount_code import DiscountCode
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.payment import Payment
 from app.models.product import Product
 from app.models.combo import Combo
 from app.models.combo_item import ComboItem
@@ -21,6 +22,7 @@ from app.services.pricing import (
     resolve_pricing_rule,
 )
 from app.schemas import CheckoutSettingsOut, CustomerPricingStatusOut, OrderCreate, OrderOut
+from app.services.sepay import make_payment_code
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -43,15 +45,15 @@ def get_default_shipping_fee(db: Session) -> float:
 def get_checkout_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return {
         "default_shipping_fee": get_default_shipping_fee(db),
-        "payment_methods": ["cod"],
+        "payment_methods": ["cod", "sepay"],
     }
 
 @router.post("", response_model=OrderOut)
 def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if not data.items:
         raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất một sản phẩm")
-    if data.payment_method != "cod":
-        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ thanh toán COD")
+    if data.payment_method not in {"cod", "sepay"}:
+        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ thanh toán COD hoặc SePay")
     if not data.shipping_full_name.strip():
         raise HTTPException(status_code=400, detail="Vui lòng nhập họ tên người nhận")
     if not data.shipping_phone.strip():
@@ -126,7 +128,8 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         total_amount=order_total,
         applied_price_type=price_type,
         discount_code_id=discount_code.id if discount_code else None,
-        payment_method="cod",
+        payment_method=data.payment_method,
+        payment_status="pending",
         shipping_fee=shipping_fee,
         shipping_full_name=data.shipping_full_name.strip(),
         shipping_phone=data.shipping_phone.strip(),
@@ -136,6 +139,16 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
     )
     db.add(order)
     db.flush()
+    if data.payment_method == "sepay":
+        order.payment_code = make_payment_code(order.id)
+        db.add(
+            Payment(
+                order_id=order.id,
+                payment_method="sepay",
+                amount=order_total,
+                status="pending",
+            )
+        )
 
     for line in final_lines:
         line["product"].stock -= line["quantity"]
@@ -160,7 +173,7 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         title="Đơn hàng đã được tạo",
         message=(
             f"Đơn hàng #{order.id} đã tạo thành công. Trạng thái hiện tại: {status_label}. "
-            f"Hình thức thanh toán: Thanh toán khi nhận hàng. "
+            f"Hình thức thanh toán: {'SePay QR' if data.payment_method == 'sepay' else 'Thanh toán khi nhận hàng'}. "
             f"Giá áp dụng: {pricing_rule.label}. "
             f"Phí vận chuyển: {shipping_fee:,.0f}đ. "
             f"Tiết kiệm từ chính sách giá: {pricing_savings:,.0f}đ. "
@@ -174,7 +187,7 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         message=(
             f"Khách hàng {user.full_name} vừa tạo đơn hàng #{order.id} "
             f"({pricing_rule.label}) với tổng tiền {order_total:,.0f}đ, "
-            f"nhận hàng COD tại {data.shipping_city.strip()}."
+            f"thanh toán {'SePay QR' if data.payment_method == 'sepay' else 'COD'} tại {data.shipping_city.strip()}."
         ).replace(",", "."),
         link="/admin",
     )

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { authStorage, orderApi, type CheckoutSettings } from '../services/api';
+import { authStorage, orderApi, paymentApi, type CheckoutSettings, type Order, type SePayPaymentStatus } from '../services/api';
 import { cartStorage, type CartItem } from '../services/cart';
 
 function currency(value: number) {
@@ -28,6 +28,8 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<Order | null>(null);
+  const [sepayStatus, setSepayStatus] = useState<SePayPaymentStatus | null>(null);
   const initialName = splitFullName(currentUser?.full_name);
   const [form, setForm] = useState({
     firstName: initialName.firstName,
@@ -36,7 +38,7 @@ export function CheckoutPage() {
     address: '',
     city: 'TP. Hồ Chí Minh',
     postalCode: '',
-    paymentMethod: 'cod' as const,
+    paymentMethod: 'cod' as 'cod' | 'sepay',
   });
 
   useEffect(() => {
@@ -76,6 +78,31 @@ export function CheckoutPage() {
   const updateForm = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    if (!pendingPayment || pendingPayment.payment_method !== 'sepay') return;
+
+    let stopped = false;
+    const loadStatus = async () => {
+      try {
+        const response = await paymentApi.getSePayStatus(pendingPayment.id);
+        if (stopped) return;
+        setSepayStatus(response.data);
+        if (response.data.payment_status === 'paid') {
+          setMessage(`Thanh toán SePay thành công. Mã đơn của bạn là #${pendingPayment.id}.`);
+        }
+      } catch (statusError) {
+        console.error('Failed to load SePay payment status', statusError);
+      }
+    };
+
+    void loadStatus();
+    const timer = window.setInterval(loadStatus, 3000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [pendingPayment]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -117,11 +144,16 @@ export function CheckoutPage() {
         shipping_address: form.address.trim(),
         shipping_city: form.city.trim(),
         shipping_postal_code: form.postalCode.trim() || undefined,
-        payment_method: 'cod',
+        payment_method: form.paymentMethod,
       });
       cartStorage.clear();
-      setMessage(`Đặt hàng COD thành công. Mã đơn của bạn là #${response.data.id}.`);
-      window.setTimeout(() => navigate(`/account?order=${response.data.id}`), 1000);
+      if (response.data.payment_method === 'sepay') {
+        setPendingPayment(response.data);
+        setMessage('Đơn hàng đã được tạo. Vui lòng quét QR SePay để thanh toán.');
+      } else {
+        setMessage(`Đặt hàng COD thành công. Mã đơn của bạn là #${response.data.id}.`);
+        window.setTimeout(() => navigate(`/account?order=${response.data.id}`), 1000);
+      }
     } catch (submitError: any) {
       setError(submitError?.response?.data?.detail || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
     } finally {
@@ -133,7 +165,7 @@ export function CheckoutPage() {
     return null;
   }
 
-  if (!items.length) {
+  if (!items.length && !pendingPayment) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-[960px] items-center px-5 py-16 sm:px-8">
         <div className="w-full rounded-[2rem] border border-sky-100 bg-white px-8 py-16 text-center shadow-[0_24px_60px_rgba(24,58,92,0.08)]">
@@ -263,21 +295,26 @@ export function CheckoutPage() {
                   <h2 className="mt-3 text-2xl font-bold text-slate-900">{t('checkout.payment_title')}</h2>
                   <p className="mt-2 text-sm leading-7 text-stone-500">{t('checkout.payment_desc')}</p>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
-                  COD
+                <span className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
+                  {form.paymentMethod === 'sepay' ? 'SePay' : 'COD'}
                 </span>
               </div>
 
-              <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-5">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-sm">
-                    <span className="material-symbols-outlined">payments</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">{t('checkout.cod_title')}</h3>
-                    <p className="mt-2 text-sm leading-7 text-stone-600">{t('checkout.cod_desc')}</p>
-                  </div>
-                </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <PaymentOption
+                  active={form.paymentMethod === 'cod'}
+                  title={t('checkout.cod_title')}
+                  description={t('checkout.cod_desc')}
+                  icon="payments"
+                  onClick={() => updateForm('paymentMethod', 'cod')}
+                />
+                <PaymentOption
+                  active={form.paymentMethod === 'sepay'}
+                  title="Thanh toán SePay QR"
+                  description="Quét mã QR ngân hàng. Hệ thống tự xác nhận khi SePay báo tiền vào."
+                  icon="qr_code_scanner"
+                  onClick={() => updateForm('paymentMethod', 'sepay')}
+                />
               </div>
             </section>
 
@@ -313,6 +350,13 @@ export function CheckoutPage() {
                 <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                   {error}
                 </div>
+              ) : null}
+              {pendingPayment?.payment_method === 'sepay' ? (
+                <SePayPaymentPanel
+                  order={pendingPayment}
+                  status={sepayStatus}
+                  onViewOrder={() => navigate(`/account?order=${pendingPayment.id}`)}
+                />
               ) : null}
             </section>
           </form>
@@ -435,6 +479,105 @@ function Field({
         placeholder={placeholder}
         type="text"
       />
+    </div>
+  );
+}
+
+function PaymentOption({
+  active,
+  title,
+  description,
+  icon,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  icon: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`rounded-[1.4rem] border p-5 text-left transition ${
+        active
+          ? 'border-sky-300 bg-sky-50 shadow-[0_16px_32px_rgba(14,116,144,0.12)]'
+          : 'border-stone-100 bg-slate-50/70 hover:border-sky-200 hover:bg-white'
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <div className="flex items-start gap-4">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ${active ? 'text-sky-700' : 'text-stone-500'}`}>
+          <span className="material-symbols-outlined">{icon}</span>
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+          <p className="mt-2 text-sm leading-7 text-stone-600">{description}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function SePayPaymentPanel({
+  order,
+  status,
+  onViewOrder,
+}: {
+  order: Order;
+  status: SePayPaymentStatus | null;
+  onViewOrder: () => void;
+}) {
+  const qrUrl = status?.qr_url || order.sepay_qr_url;
+  const paymentCode = status?.payment_code || order.payment_code;
+  const isPaid = status?.payment_status === 'paid' || order.payment_status === 'paid';
+
+  return (
+    <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-5">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        <div className="flex h-64 w-full items-center justify-center rounded-[1.2rem] bg-white p-4 shadow-sm md:w-64">
+          {qrUrl ? (
+            <img className="h-full w-full object-contain" src={qrUrl} alt="SePay QR" />
+          ) : (
+            <div className="text-center text-sm leading-6 text-stone-500">
+              Chưa cấu hình tài khoản ngân hàng SePay trong backend/.env.
+            </div>
+          )}
+        </div>
+        <div className="flex-1">
+          <div className={`inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] ${
+            isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+          }`}>
+            {isPaid ? 'Đã thanh toán' : 'Chờ thanh toán'}
+          </div>
+          <h3 className="mt-4 text-2xl font-bold text-slate-900">Thanh toán đơn #{order.id}</h3>
+          <div className="mt-5 space-y-3 text-sm">
+            <InfoRow label="Số tiền" value={currency(status?.total_amount || order.total_amount)} />
+            <InfoRow label="Nội dung CK" value={paymentCode || 'Chưa có mã'} strong />
+            <InfoRow label="Ngân hàng" value={status?.bank_name || 'Chưa cấu hình'} />
+            <InfoRow label="Số tài khoản" value={status?.bank_account || 'Chưa cấu hình'} />
+            <InfoRow label="Chủ tài khoản" value={status?.account_name || 'Chưa cấu hình'} />
+          </div>
+          <button
+            className="mt-6 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-700"
+            onClick={onViewOrder}
+            type="button"
+          >
+            Xem đơn hàng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3">
+      <span className="text-stone-500">{label}</span>
+      <span className={`${strong ? 'text-lg font-extrabold tracking-wide text-sky-800' : 'font-semibold text-slate-900'}`}>
+        {value}
+      </span>
     </div>
   );
 }

@@ -9,6 +9,8 @@ export function Header() {
   const location = useLocation();
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const currentUser = authStorage.getUser();
+  const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
     setCartCount(cartStorage.getCount());
@@ -66,6 +68,18 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              className={`font-medium tracking-tight transition-colors duration-300 pb-1 ${
+                isActive('/admin')
+                  ? 'text-emerald-900 border-b-2 border-emerald-800'
+                  : 'text-stone-500 hover:text-emerald-800 border-b-2 border-transparent'
+              }`}
+            >
+              {t('header.admin')}
+            </Link>
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-5">
@@ -81,7 +95,16 @@ export function Header() {
               </span>
             ) : null}
           </Link>
-          <Link to={authStorage.getUser() ? '/account' : '/login'} className="material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity hidden sm:block">person</Link>
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              className="hidden items-center gap-1.5 rounded-full bg-emerald-900 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 lg:inline-flex"
+            >
+              <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+              {t('header.admin')}
+            </Link>
+          ) : null}
+          <Link to={currentUser ? '/account' : '/login'} className="material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity hidden sm:block">person</Link>
 
           <button
             className="md:hidden material-symbols-outlined text-emerald-900 text-2xl"
@@ -110,14 +133,27 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              {isAdmin ? (
+                <Link
+                  to="/admin"
+                  className={`px-4 py-3 rounded-xl text-base font-medium transition flex items-center gap-3 ${
+                    isActive('/admin')
+                      ? 'bg-emerald-50 text-emerald-900'
+                      : 'text-stone-600 hover:bg-stone-50 hover:text-emerald-800'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+                  {t('header.admin')}
+                </Link>
+              ) : null}
               <hr className="my-2 border-stone-100" />
               <Link to="/search" className="px-4 py-3 rounded-xl text-base font-medium text-stone-600 hover:bg-stone-50 hover:text-emerald-800 transition flex items-center gap-3">
                 <span className="material-symbols-outlined text-xl">search</span>
                 {t('header.search')}
               </Link>
-              <Link to="/login" className="px-4 py-3 rounded-xl text-base font-medium text-stone-600 hover:bg-stone-50 hover:text-emerald-800 transition flex items-center gap-3">
+              <Link to={currentUser ? '/account' : '/login'} className="px-4 py-3 rounded-xl text-base font-medium text-stone-600 hover:bg-stone-50 hover:text-emerald-800 transition flex items-center gap-3">
                 <span className="material-symbols-outlined text-xl">person</span>
-                {t('header.login')}
+                {currentUser ? t('header.account') : t('header.login')}
               </Link>
             </div>
           </div>
