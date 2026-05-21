@@ -18,6 +18,8 @@ function splitFullName(fullName: string | undefined) {
   };
 }
 
+const SEPAY_PAYMENT_WINDOW_MS = 5 * 60 * 1000;
+
 export function CheckoutPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ export function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingPayment, setPendingPayment] = useState<Order | null>(null);
   const [sepayStatus, setSepayStatus] = useState<SePayPaymentStatus | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const initialName = splitFullName(currentUser?.full_name);
   const [form, setForm] = useState({
     firstName: initialName.firstName,
@@ -74,6 +77,20 @@ export function CheckoutPage() {
   );
   const shipping = settings?.default_shipping_fee ?? 30000;
   const total = subtotal + shipping;
+  const summaryShipping = pendingPayment ? pendingPayment.shipping_fee ?? 0 : shipping;
+  const summaryTotal = pendingPayment ? pendingPayment.total_amount : total;
+  const summarySubtotal = pendingPayment ? Math.max(0, summaryTotal - summaryShipping) : subtotal;
+  const summaryItemCount = pendingPayment
+    ? pendingPayment.items.reduce((count, item) => count + item.quantity, 0)
+    : items.reduce((count, item) => count + item.quantity, 0);
+  const paymentDeadlineMs = pendingPayment?.created_at
+    ? new Date(pendingPayment.created_at).getTime() + SEPAY_PAYMENT_WINDOW_MS
+    : null;
+  const paymentExpired = pendingPayment?.payment_status === 'expired'
+    || sepayStatus?.payment_status === 'expired'
+    || Boolean(paymentDeadlineMs && nowMs >= paymentDeadlineMs);
+  const remainingPaymentSeconds = paymentDeadlineMs ? Math.max(0, Math.ceil((paymentDeadlineMs - nowMs) / 1000)) : null;
+  const paymentSucceeded = Boolean(pendingPayment && (pendingPayment.payment_status === 'paid' || sepayStatus?.payment_status === 'paid'));
 
   const updateForm = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -84,12 +101,19 @@ export function CheckoutPage() {
 
     let stopped = false;
     const loadStatus = async () => {
+      if (paymentDeadlineMs && Date.now() >= paymentDeadlineMs) {
+        setError('Mã QR SePay đã hết hạn sau 5 phút. Vui lòng tạo đơn mới nếu muốn thanh toán online.');
+        return;
+      }
       try {
         const response = await paymentApi.getSePayStatus(pendingPayment.id);
         if (stopped) return;
         setSepayStatus(response.data);
         if (response.data.payment_status === 'paid') {
           setMessage(`Thanh toán SePay thành công. Mã đơn của bạn là #${pendingPayment.id}.`);
+        }
+        if (response.data.payment_status === 'expired') {
+          setError('Mã QR SePay đã hết hạn sau 5 phút. Vui lòng tạo đơn mới nếu muốn thanh toán online.');
         }
       } catch (statusError) {
         console.error('Failed to load SePay payment status', statusError);
@@ -102,6 +126,13 @@ export function CheckoutPage() {
       stopped = true;
       window.clearInterval(timer);
     };
+  }, [navigate, paymentDeadlineMs, pendingPayment]);
+
+  useEffect(() => {
+    if (!pendingPayment || pendingPayment.payment_method !== 'sepay') return;
+    if (pendingPayment.payment_status === 'paid') return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
   }, [pendingPayment]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -149,6 +180,8 @@ export function CheckoutPage() {
       cartStorage.clear();
       if (response.data.payment_method === 'sepay') {
         setPendingPayment(response.data);
+        setSepayStatus(null);
+        setNowMs(Date.now());
         setMessage('Đơn hàng đã được tạo. Vui lòng quét QR SePay để thanh toán.');
       } else {
         setMessage(`Đặt hàng COD thành công. Mã đơn của bạn là #${response.data.id}.`);
@@ -163,6 +196,16 @@ export function CheckoutPage() {
 
   if (!currentUser) {
     return null;
+  }
+
+  if (paymentSucceeded && pendingPayment) {
+    return (
+      <PaymentSuccessView
+        order={pendingPayment}
+        onViewNotifications={() => navigate(`/account?tab=notifications&order=${pendingPayment.id}`)}
+        onViewOrder={() => navigate(`/account?order=${pendingPayment.id}`)}
+      />
+    );
   }
 
   if (!items.length && !pendingPayment) {
@@ -188,14 +231,14 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-[1440px] px-5 pb-24 pt-10 sm:px-8 md:px-12 xl:px-16">
+    <div className="mx-auto min-h-screen max-w-[1440px] px-4 pb-24 pt-8 sm:px-6 md:px-10 xl:px-16">
       <div className="mb-10">
         <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.section_label')}</p>
         <h1 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">{t('checkout.page_title')}</h1>
         <p className="mt-3 max-w-2xl text-base leading-7 text-stone-500">{t('checkout.page_desc')}</p>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-10 xl:grid-cols-12 xl:gap-12">
+      <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-12 xl:gap-12">
         <div className="space-y-8 xl:col-span-7">
           <div className="rounded-[1.8rem] border border-sky-100 bg-[linear-gradient(135deg,#f6fbff_0%,#ffffff_55%,#eef7ff_100%)] p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
             <div className="flex flex-wrap items-center gap-3">
@@ -218,15 +261,15 @@ export function CheckoutPage() {
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.summary_items')}</p>
-                <div className="mt-2 text-2xl font-bold text-slate-900">{items.length}</div>
+                <div className="mt-2 text-2xl font-bold text-slate-900">{summaryItemCount}</div>
               </div>
               <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.shipping')}</p>
-                <div className="mt-2 text-2xl font-bold text-slate-900">{currency(shipping)}</div>
+                <div className="mt-2 text-2xl font-bold text-slate-900">{currency(summaryShipping)}</div>
               </div>
               <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.total')}</p>
-                <div className="mt-2 text-2xl font-bold text-sky-800">{currency(total)}</div>
+                <div className="mt-2 text-2xl font-bold text-sky-800">{currency(summaryTotal)}</div>
               </div>
             </div>
           </div>
@@ -355,6 +398,8 @@ export function CheckoutPage() {
                 <SePayPaymentPanel
                   order={pendingPayment}
                   status={sepayStatus}
+                  expired={paymentExpired}
+                  remainingSeconds={remainingPaymentSeconds}
                   onViewOrder={() => navigate(`/account?order=${pendingPayment.id}`)}
                 />
               ) : null}
@@ -370,12 +415,38 @@ export function CheckoutPage() {
                 <h3 className="mt-3 text-2xl font-bold text-slate-900">{t('checkout.order_summary')}</h3>
               </div>
               <span className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
-                {t('checkout.items_count', { count: items.length })}
+                {t('checkout.items_count', { count: summaryItemCount })}
               </span>
             </div>
 
             <div className="space-y-6">
-              {items.map((item) => (
+              {pendingPayment ? pendingPayment.items.map((item) => (
+                <div key={item.id} className="flex gap-4 rounded-[1.4rem] border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-sm">
+                    {item.product?.image_url ? (
+                      <img className="h-full w-full object-cover" alt={item.product.name} src={item.product.image_url} />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-sky-50 text-sky-700">TMC</div>
+                    )}
+                  </div>
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900">{item.product?.name || `Sản phẩm #${item.product_id}`}</h4>
+                      <p className="mt-1 text-sm text-stone-500">
+                        {[item.product?.brand?.name, item.product?.category?.name, item.combo_name].filter(Boolean).join(' • ') || t('product.not_available')}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-stone-500">
+                        {t('checkout.quantity_label', { count: item.quantity })}
+                      </span>
+                      <span className="text-base font-bold text-sky-800">
+                        {currency(item.unit_price * item.quantity)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )) : items.map((item) => (
                 <div key={item.product_id} className="flex gap-4 rounded-[1.4rem] border border-slate-100 bg-slate-50/70 p-4">
                   <div className="h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-sm">
                     {item.product.image_url ? (
@@ -417,15 +488,15 @@ export function CheckoutPage() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-stone-500">{t('checkout.subtotal')}</span>
-                <span className="font-semibold text-slate-900">{currency(subtotal)}</span>
+                <span className="font-semibold text-slate-900">{currency(summarySubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-stone-500">{t('checkout.shipping')}</span>
-                <span className="font-semibold text-slate-900">{currency(shipping)}</span>
+                <span className="font-semibold text-slate-900">{currency(summaryShipping)}</span>
               </div>
               <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
                 <span className="text-xl font-bold text-slate-900">{t('checkout.total')}</span>
-                <span className="text-3xl font-bold text-sky-800">{currency(total)}</span>
+                <span className="text-3xl font-bold text-sky-800">{currency(summaryTotal)}</span>
               </div>
             </div>
 
@@ -435,10 +506,10 @@ export function CheckoutPage() {
                 const formElement = document.querySelector('form');
                 if (formElement) formElement.requestSubmit();
               }}
-              disabled={submitting}
+              disabled={submitting || Boolean(pendingPayment)}
               type="button"
             >
-              {submitting ? t('checkout.processing') : t('checkout.complete_btn')}
+              {pendingPayment ? 'Đơn hàng đã được tạo' : submitting ? t('checkout.processing') : t('checkout.complete_btn')}
             </button>
 
             <div className="rounded-[1.4rem] bg-slate-50 p-5">
@@ -519,23 +590,136 @@ function PaymentOption({
   );
 }
 
+function PaymentSuccessView({
+  order,
+  onViewNotifications,
+  onViewOrder,
+}: {
+  order: Order;
+  onViewNotifications: () => void;
+  onViewOrder: () => void;
+}) {
+  return (
+    <div className="mx-auto min-h-[calc(100vh-90px)] max-w-[1180px] px-4 py-10 sm:px-6 lg:px-10">
+      <section className="overflow-hidden rounded-[1.8rem] border border-emerald-100 bg-white shadow-[0_28px_80px_rgba(22,101,52,0.12)]">
+        <div className="bg-[linear-gradient(135deg,#065f46_0%,#047857_55%,#0f766e_100%)] px-6 py-12 text-white sm:px-10 lg:px-14">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/16 ring-1 ring-white/25">
+                <span className="material-symbols-outlined text-5xl">check_circle</span>
+              </div>
+              <p className="mt-8 text-xs font-bold uppercase tracking-[0.28em] text-emerald-100">Giao dịch thành công</p>
+              <h1 className="mt-4 text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
+                Thanh toán đã được xác nhận
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-emerald-50">
+                Hệ thống đã nhận thanh toán SePay cho đơn #{order.id}. Thông báo đã được lưu vào tài khoản của bạn.
+              </p>
+            </div>
+            <div className="rounded-[1.4rem] bg-white/12 p-5 ring-1 ring-white/18 lg:w-80">
+              <p className="text-sm font-semibold text-emerald-100">Tổng đã thanh toán</p>
+              <p className="mt-3 break-words text-4xl font-black">{currency(order.total_amount)}</p>
+              <p className="mt-4 text-sm text-emerald-50">Mã chuyển khoản</p>
+              <p className="mt-1 break-all text-xl font-bold">{order.payment_code}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-0 lg:grid-cols-[1fr,0.8fr]">
+          <div className="space-y-4 px-6 py-8 sm:px-10">
+            <h2 className="text-2xl font-bold text-slate-900">Tóm tắt đơn hàng</h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SuccessMetric label="Trạng thái" value="Đã thanh toán" />
+              <SuccessMetric label="Hình thức" value="SePay QR" />
+              <SuccessMetric label="Mã đơn" value={`#${order.id}`} />
+            </div>
+            <div className="rounded-[1.4rem] bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <span className="font-semibold text-slate-900">Sản phẩm</span>
+                <span className="text-sm font-bold text-emerald-700">{order.items.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm</span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900">{item.product?.name || `Sản phẩm #${item.product_id}`}</p>
+                      <p className="mt-1 text-sm text-stone-500">Số lượng {item.quantity}</p>
+                    </div>
+                    <p className="shrink-0 font-bold text-slate-900">{currency(item.unit_price * item.quantity)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <aside className="border-t border-slate-100 bg-emerald-50/60 px-6 py-8 sm:px-10 lg:border-l lg:border-t-0">
+            <h2 className="text-2xl font-bold text-slate-900">Thông báo hệ thống</h2>
+            <p className="mt-3 leading-7 text-stone-600">
+              Bạn có thể mở mục thông báo để xem xác nhận thanh toán và theo dõi các cập nhật tiếp theo từ admin.
+            </p>
+            <div className="mt-7 grid gap-3">
+              <button
+                className="rounded-2xl bg-emerald-800 px-5 py-4 font-bold text-white transition hover:bg-emerald-700"
+                onClick={onViewNotifications}
+                type="button"
+              >
+                Xem thông báo
+              </button>
+              <button
+                className="rounded-2xl border border-emerald-200 bg-white px-5 py-4 font-bold text-emerald-800 transition hover:bg-emerald-50"
+                onClick={onViewOrder}
+                type="button"
+              >
+                Xem đơn hàng
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SuccessMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-4">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{label}</p>
+      <p className="mt-2 break-words text-lg font-bold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
 function SePayPaymentPanel({
   order,
   status,
+  expired,
+  remainingSeconds,
   onViewOrder,
 }: {
   order: Order;
   status: SePayPaymentStatus | null;
+  expired: boolean;
+  remainingSeconds: number | null;
   onViewOrder: () => void;
 }) {
   const qrUrl = status?.qr_url || order.sepay_qr_url;
   const paymentCode = status?.payment_code || order.payment_code;
   const isPaid = status?.payment_status === 'paid' || order.payment_status === 'paid';
+  const remainingLabel = remainingSeconds === null
+    ? null
+    : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
 
   return (
     <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-5">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
-        <div className="flex h-64 w-full items-center justify-center rounded-[1.2rem] bg-white p-4 shadow-sm md:w-64">
+        <div className="relative flex h-64 w-full items-center justify-center overflow-hidden rounded-[1.2rem] bg-white p-4 shadow-sm md:w-64">
+          {expired ? (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 px-6 text-center">
+              <span className="material-symbols-outlined text-4xl text-rose-500">timer_off</span>
+              <p className="mt-3 text-sm font-bold text-slate-900">Mã QR đã hết hạn</p>
+              <p className="mt-2 text-xs leading-5 text-stone-500">Đơn này không còn nhận thanh toán online.</p>
+            </div>
+          ) : null}
           {qrUrl ? (
             <img className="h-full w-full object-contain" src={qrUrl} alt="SePay QR" />
           ) : (
@@ -546,11 +730,21 @@ function SePayPaymentPanel({
         </div>
         <div className="flex-1">
           <div className={`inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] ${
-            isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+            isPaid ? 'bg-emerald-100 text-emerald-700' : expired ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
           }`}>
-            {isPaid ? 'Đã thanh toán' : 'Chờ thanh toán'}
+            {isPaid ? 'Đã thanh toán' : expired ? 'Hết hạn' : 'Chờ thanh toán'}
           </div>
           <h3 className="mt-4 text-2xl font-bold text-slate-900">Thanh toán đơn #{order.id}</h3>
+          {!isPaid && !expired && remainingLabel ? (
+            <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+              Vui lòng thanh toán trong {remainingLabel}. Quá 5 phút hệ thống sẽ khóa QR online.
+            </p>
+          ) : null}
+          {expired ? (
+            <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              Thời gian thanh toán online đã hết. Không chuyển tiền vào mã QR này nữa.
+            </p>
+          ) : null}
           <div className="mt-5 space-y-3 text-sm">
             <InfoRow label="Số tiền" value={currency(status?.total_amount || order.total_amount)} />
             <InfoRow label="Nội dung CK" value={paymentCode || 'Chưa có mã'} strong />
@@ -574,8 +768,8 @@ function SePayPaymentPanel({
 function InfoRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3">
-      <span className="text-stone-500">{label}</span>
-      <span className={`${strong ? 'text-lg font-extrabold tracking-wide text-sky-800' : 'font-semibold text-slate-900'}`}>
+      <span className="shrink-0 text-stone-500">{label}</span>
+      <span className={`min-w-0 break-all text-right ${strong ? 'text-lg font-extrabold tracking-wide text-sky-800' : 'font-semibold text-slate-900'}`}>
         {value}
       </span>
     </div>

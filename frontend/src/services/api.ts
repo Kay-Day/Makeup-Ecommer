@@ -367,10 +367,12 @@ export const authStorage = {
   setSession(response: AuthResponse) {
     localStorage.setItem('tmc_token', response.access_token);
     localStorage.setItem('tmc_user', JSON.stringify(response.user));
+    window.dispatchEvent(new Event('tmc-auth-change'));
   },
   clear() {
     localStorage.removeItem('tmc_token');
     localStorage.removeItem('tmc_user');
+    window.dispatchEvent(new Event('tmc-auth-change'));
   },
   getUser(): UserOut | null {
     const raw = localStorage.getItem('tmc_user');

@@ -9,6 +9,7 @@
     "cart": "Cart",
     "login": "Login",
     "account": "Account",
+    "logout": "Sign out",
     "admin": "Admin",
     "combos": "Combos"
   },

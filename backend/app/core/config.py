@@ -23,9 +23,10 @@ class Settings(BaseSettings):
     SEPAY_BANK_ACCOUNT: str = ""
     SEPAY_ACCOUNT_NAME: str = ""
     SEPAY_PAYMENT_PREFIX: str = "TMC"
-    SEPAY_WEBHOOK_AUTH_MODE: str = "hmac"
+    SEPAY_WEBHOOK_AUTH_MODE: str = "apikey"
     SEPAY_WEBHOOK_SECRET: str = "change-this-sepay-webhook-secret"
     SEPAY_WEBHOOK_API_KEY: str = ""
+    SEPAY_PAYMENT_TIMEOUT_SECONDS: int = 300
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -3,7 +3,7 @@ import hmac
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
@@ -37,18 +37,40 @@ def _extract_payment_code(payload: dict) -> str | None:
     return None
 
 
+def _is_order_payment_expired(order: Order) -> bool:
+    if order.payment_status != "pending" or not order.created_at:
+        return False
+    created_at = order.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    deadline = created_at + timedelta(seconds=settings.SEPAY_PAYMENT_TIMEOUT_SECONDS)
+    return datetime.now(timezone.utc) > deadline
+
+
+def _mark_order_payment_expired(db: Session, order: Order) -> None:
+    order.payment_status = "expired"
+    payment = db.query(Payment).filter(Payment.order_id == order.id, Payment.payment_method == "sepay").first()
+    if payment and payment.status == "pending":
+        payment.status = "expired"
+
+
 def _verify_hmac(raw_body: bytes, signature: str | None, timestamp: str | None) -> None:
     if not settings.SEPAY_WEBHOOK_SECRET:
+        print("SePay webhook rejected: missing SEPAY_WEBHOOK_SECRET")
         raise HTTPException(status_code=500, detail="SePay webhook secret is not configured")
     if not signature or not timestamp:
+        print("SePay webhook rejected: missing HMAC headers")
         raise HTTPException(status_code=401, detail="Missing SePay signature")
 
     try:
         ts = int(timestamp)
     except ValueError as exc:
+        print(f"SePay webhook rejected: invalid timestamp {timestamp!r}")
         raise HTTPException(status_code=401, detail="Invalid SePay timestamp") from exc
 
-    if abs(int(time.time()) - ts) > 300:
+    clock_drift = abs(int(time.time()) - ts)
+    if clock_drift > 300:
+        print(f"SePay webhook rejected: request expired, clock drift {clock_drift}s")
         raise HTTPException(status_code=401, detail="SePay request expired")
 
     expected = "sha256=" + hmac.new(
@@ -57,16 +79,20 @@ def _verify_hmac(raw_body: bytes, signature: str | None, timestamp: str | None) 
         hashlib.sha256,
     ).hexdigest()
     if not hmac.compare_digest(expected, signature):
+        print("SePay webhook rejected: invalid signature")
         raise HTTPException(status_code=401, detail="Invalid SePay signature")
 
 
 def _verify_api_key(authorization: str | None) -> None:
     expected = settings.SEPAY_WEBHOOK_API_KEY
     if not expected:
+        print("SePay webhook rejected: missing SEPAY_WEBHOOK_API_KEY")
         raise HTTPException(status_code=500, detail="SePay webhook API key is not configured")
     if not authorization or not authorization.startswith("Apikey "):
+        print("SePay webhook rejected: missing API key header")
         raise HTTPException(status_code=401, detail="Missing SePay API key")
     if not hmac.compare_digest(authorization[7:], expected):
+        print("SePay webhook rejected: invalid API key")
         raise HTTPException(status_code=401, detail="Invalid SePay API key")
 
 
@@ -121,6 +147,10 @@ def get_sepay_payment_status(
         raise HTTPException(status_code=404, detail="Order not found")
     if user.role != "admin" and order.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
+    if _is_order_payment_expired(order):
+        _mark_order_payment_expired(db, order)
+        db.commit()
+        db.refresh(order)
 
     return {
         "order_id": order.id,
@@ -184,6 +214,12 @@ async def sepay_webhook(
     order = db.query(Order).filter(Order.payment_code == code).first()
     if not order:
         _log_webhook(db, payload, raw_payload, "unmatched", "No order matched payment code")
+        db.commit()
+        return {"success": True}
+
+    if _is_order_payment_expired(order):
+        _log_webhook(db, payload, raw_payload, "expired", "Payment window expired")
+        _mark_order_payment_expired(db, order)
         db.commit()
         return {"success": True}
 

@@ -146,6 +146,7 @@ export function AdminOverviewPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [uploadingKey, setUploadingKey] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<{ label: string; callback: () => Promise<unknown> } | null>(null);
 
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [discountSetting, setDiscountSetting] = useState<DiscountSetting | null>(null);
@@ -796,7 +797,13 @@ export function AdminOverviewPage() {
   };
 
   const handleDelete = async (label: string, callback: () => Promise<unknown>) => {
-    if (!window.confirm(`Bạn có chắc muốn xoá ${label}?`)) return;
+    setPendingDelete({ label, callback });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { label, callback } = pendingDelete;
+    setPendingDelete(null);
     await withSaving(async () => {
       await callback();
       showMessage(`Đã xoá ${label}.`);
@@ -2510,6 +2517,46 @@ export function AdminOverviewPage() {
             ) : null}
           </div>
         </main>
+      </div>
+      {pendingDelete ? (
+        <AdminConfirmDialog
+          title="Xác nhận xoá"
+          message={`Bạn có chắc muốn xoá ${pendingDelete.label}?`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AdminConfirmDialog({
+  title,
+  message,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4">
+      <div className="w-full max-w-md rounded-[1.5rem] bg-white p-6 shadow-[0_30px_80px_rgba(67,56,39,0.28)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-[#8b6837]">
+          <span className="material-symbols-outlined">delete</span>
+        </div>
+        <h3 className="mt-5 text-2xl font-bold text-stone-900">{title}</h3>
+        <p className="mt-3 leading-7 text-stone-600">{message}</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button className="rounded-2xl border border-stone-200 px-5 py-3 font-bold text-stone-700 transition hover:bg-stone-50" onClick={onCancel} type="button">
+            Huỷ
+          </button>
+          <button className="rounded-2xl bg-[#8b6837] px-5 py-3 font-bold text-white transition hover:brightness-105" onClick={onConfirm} type="button">
+            Xoá
+          </button>
+        </div>
       </div>
     </div>
   );

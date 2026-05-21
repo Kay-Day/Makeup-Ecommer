@@ -34,6 +34,8 @@ export function MyAccountPage() {
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [cancelOrderId, setCancelOrderId] = useState<number | null>(null);
+  const [accountNotice, setAccountNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const selectSection = (section: 'orders' | 'wishlist' | 'notifications' | 'profile') => {
     setActiveSection(section);
@@ -41,6 +43,15 @@ export function MyAccountPage() {
   };
 
   useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'notifications') {
+      setActiveSection('notifications');
+      return;
+    }
+    if (tab === 'wishlist' || tab === 'profile' || tab === 'orders') {
+      setActiveSection(tab);
+      return;
+    }
     if (searchParams.get('order')) {
       setActiveSection('orders');
     }
@@ -109,12 +120,14 @@ export function MyAccountPage() {
   };
 
   const handleCancelOrder = async (orderId: number) => {
-    if (!window.confirm(t('account.cancel_order_confirm'))) return;
     try {
       const response = await orderApi.cancel(orderId);
       setOrders((prev) => prev.map((o) => (o.id === orderId ? response.data : o)));
+      setAccountNotice({ type: 'success', text: 'Đã huỷ đơn hàng thành công.' });
     } catch (error: any) {
-      alert(error?.response?.data?.detail || t('account.cancel_order_error'));
+      setAccountNotice({ type: 'error', text: error?.response?.data?.detail || t('account.cancel_order_error') });
+    } finally {
+      setCancelOrderId(null);
     }
   };
 
@@ -167,7 +180,7 @@ export function MyAccountPage() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-[linear-gradient(180deg,#f8f7f2_0%,#ffffff_100%)]">
-      <div className="mx-auto flex max-w-[1500px] gap-6 px-6 py-10">
+      <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-8 sm:px-6 lg:py-10">
         <aside className="sticky top-24 hidden h-[calc(100vh-120px)] w-80 shrink-0 rounded-[2rem] bg-[#163126] p-6 text-white lg:flex lg:flex-col">
           <div className="flex items-center gap-4 rounded-[1.5rem] bg-white/10 p-4 backdrop-blur">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-300/20 text-xl font-bold text-emerald-100">
@@ -205,7 +218,15 @@ export function MyAccountPage() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <section className="rounded-[2.25rem] bg-white p-6 shadow-[0_25px_80px_rgba(60,68,48,0.08)] md:p-8">
+          <section className="rounded-[1.5rem] bg-white p-4 shadow-[0_25px_80px_rgba(60,68,48,0.08)] sm:p-6 md:rounded-[2.25rem] md:p-8">
+            {accountNotice ? (
+              <div className={`mb-5 flex items-start justify-between gap-4 rounded-2xl px-4 py-3 text-sm font-semibold ${
+                accountNotice.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              }`}>
+                <span>{accountNotice.text}</span>
+                <button className="font-bold opacity-70 hover:opacity-100" onClick={() => setAccountNotice(null)} type="button">Đóng</button>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-5 border-b border-stone-100 pb-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-700">{t('account.title')}</p>
@@ -316,7 +337,7 @@ export function MyAccountPage() {
                               {order.status === 'pending' ? (
                                 <button
                                   className="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100"
-                                  onClick={() => handleCancelOrder(order.id)}
+                                  onClick={() => setCancelOrderId(order.id)}
                                 >
                                   Huỷ đơn
                                 </button>
@@ -540,6 +561,49 @@ export function MyAccountPage() {
             )}
           </section>
         </main>
+      </div>
+      {cancelOrderId ? (
+        <ConfirmPanel
+          title="Huỷ đơn hàng"
+          message={t('account.cancel_order_confirm')}
+          confirmLabel="Huỷ đơn"
+          onCancel={() => setCancelOrderId(null)}
+          onConfirm={() => void handleCancelOrder(cancelOrderId)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ConfirmPanel({
+  title,
+  message,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4">
+      <div className="w-full max-w-md rounded-[1.5rem] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.25)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+          <span className="material-symbols-outlined">warning</span>
+        </div>
+        <h3 className="mt-5 text-2xl font-bold text-slate-900">{title}</h3>
+        <p className="mt-3 leading-7 text-stone-600">{message}</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button className="rounded-2xl border border-stone-200 px-5 py-3 font-bold text-stone-700 transition hover:bg-stone-50" onClick={onCancel} type="button">
+            Giữ lại
+          </button>
+          <button className="rounded-2xl bg-rose-600 px-5 py-3 font-bold text-white transition hover:bg-rose-700" onClick={onConfirm} type="button">
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,15 +1,16 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cartStorage } from '../../services/cart';
-import { authStorage } from '../../services/api';
+import { authStorage, type UserOut } from '../../services/api';
 
 export function Header() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const currentUser = authStorage.getUser();
+  const [currentUser, setCurrentUser] = useState<UserOut | null>(() => authStorage.getUser());
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
@@ -21,7 +22,18 @@ export function Header() {
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setCurrentUser(authStorage.getUser());
   }, [location.pathname]);
+
+  useEffect(() => {
+    const syncUser = () => setCurrentUser(authStorage.getUser());
+    window.addEventListener('tmc-auth-change', syncUser);
+    window.addEventListener('storage', syncUser);
+    return () => {
+      window.removeEventListener('tmc-auth-change', syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
@@ -45,6 +57,13 @@ export function Header() {
   const isActive = (path: string, exact?: boolean) => {
     if (exact) return location.pathname === path;
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = () => {
+    authStorage.clear();
+    setCurrentUser(null);
+    setMobileMenuOpen(false);
+    navigate('/login');
   };
 
   return (
@@ -105,6 +124,16 @@ export function Header() {
             </Link>
           ) : null}
           <Link to={currentUser ? '/account' : '/login'} className="material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity hidden sm:block">person</Link>
+          {currentUser ? (
+            <button
+              className="hidden items-center gap-1.5 rounded-full border border-stone-200 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:border-emerald-200 hover:bg-emerald-50 lg:inline-flex"
+              onClick={handleLogout}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+              {t('header.logout')}
+            </button>
+          ) : null}
 
           <button
             className="md:hidden material-symbols-outlined text-emerald-900 text-2xl"
@@ -155,6 +184,16 @@ export function Header() {
                 <span className="material-symbols-outlined text-xl">person</span>
                 {currentUser ? t('header.account') : t('header.login')}
               </Link>
+              {currentUser ? (
+                <button
+                  className="px-4 py-3 rounded-xl text-base font-medium text-rose-700 hover:bg-rose-50 transition flex items-center gap-3"
+                  onClick={handleLogout}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-xl">logout</span>
+                  {t('header.logout')}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

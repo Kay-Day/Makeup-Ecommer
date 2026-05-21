@@ -13,6 +13,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEditorProps) {
   const { t } = useTranslation();
   const [preview, setPreview] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -49,7 +50,7 @@ export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEdito
         const url = await onImageUpload(file);
         editor.chain().focus().setImage({ src: url }).run();
       } catch {
-        alert(t('editor.upload_error'));
+        setNotice(t('editor.upload_error'));
       }
     };
     input.click();
@@ -59,6 +60,12 @@ export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEdito
 
   return (
     <div className="rich-editor rounded-xl border border-stone-200 bg-white">
+      {notice ? (
+        <div className="m-3 flex items-start justify-between gap-3 rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          <span>{notice}</span>
+          <button className="font-bold opacity-70 hover:opacity-100" onClick={() => setNotice(null)} type="button">Đóng</button>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-1 border-b border-stone-100 px-3 py-2">
         <ToolBtn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title={t('editor.bold')}>
           <strong>B</strong>
