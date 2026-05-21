@@ -724,7 +724,7 @@ function SePayPaymentPanel({
             <img className="h-full w-full object-contain" src={qrUrl} alt="SePay QR" />
           ) : (
             <div className="text-center text-sm leading-6 text-stone-500">
-              Chưa cấu hình tài khoản ngân hàng SePay trong backend/.env.
+              Phương thức thanh toán này hiện chưa sẵn sàng. Vui lòng chọn hình thức khác hoặc thử lại sau.
             </div>
           )}
         </div>

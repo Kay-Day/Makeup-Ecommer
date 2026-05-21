@@ -829,7 +829,7 @@ export function AdminOverviewPage() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-stone-900">Biểu đồ doanh thu</h2>
-                <p className="text-sm text-stone-500">Dữ liệu tổng hợp theo tháng từ database</p>
+                <p className="text-sm text-stone-500">Dữ liệu tổng hợp theo tháng từ hoạt động bán hàng</p>
               </div>
             </div>
             <div className="flex h-72 items-end gap-3 rounded-[1.5rem] bg-[linear-gradient(180deg,#fffdf8_0%,#f6f1e7_100%)] px-4 py-5">
@@ -1583,8 +1583,8 @@ export function AdminOverviewPage() {
                 <div className="rounded-[1.8rem] border border-stone-100 bg-white p-5">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-bold text-stone-900">Webhook SePay gần đây</h3>
-                      <p className="mt-1 text-sm text-stone-500">Lưu từ database để đối soát giao dịch tiền vào và đơn hàng.</p>
+                      <h3 className="text-lg font-bold text-stone-900">Lịch sử SePay gần đây</h3>
+                      <p className="mt-1 text-sm text-stone-500">Lưu lịch sử nhận thanh toán để đối soát giao dịch tiền vào và đơn hàng.</p>
                     </div>
                     <button
                       className="rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50"
@@ -1632,7 +1632,7 @@ export function AdminOverviewPage() {
                         </tr>
                       )) : (
                         <tr>
-                          <Td colSpan={5}>Chưa có webhook SePay nào.</Td>
+                          <Td colSpan={5}>Chưa có lịch sử SePay nào.</Td>
                         </tr>
                       )}
                     </tbody>
@@ -2050,27 +2050,18 @@ export function AdminOverviewPage() {
             ) : null}
 
             {!loading && activeTab === 'chatbot' ? (
-              <AdminSection title="Quản lý chatbot DeepSeek">
+              <AdminSection title="Quản lý trợ lý tư vấn">
                 <div className="grid gap-6 xl:grid-cols-[1fr,0.9fr]">
                   <section className="space-y-4 rounded-[1.75rem] border border-stone-100 bg-[linear-gradient(180deg,#fffefa_0%,#f8f3e9_100%)] p-5">
                     <div>
-                      <h4 className="text-xl font-bold text-stone-900">API key xoay vòng</h4>
-                      <p className="mt-1 text-sm text-stone-500">Có thể nhập nhiều key DeepSeek. Hệ thống sẽ tự luân phiên key đang active và tự chuyển key khác nếu key hiện tại lỗi.</p>
+                      <h4 className="text-xl font-bold text-stone-900">Kết nối dịch vụ AI</h4>
+                      <p className="mt-1 text-sm text-stone-500">Có thể thêm nhiều cấu hình kết nối. Hệ thống sẽ ưu tiên cấu hình đang hoạt động và tự chuyển sang cấu hình dự phòng khi cần.</p>
                     </div>
                     <form className="grid gap-4 md:grid-cols-2" onSubmit={(event) => void handleChatbotKeySubmit(event)}>
-                      <FormInput label="Tên key" value={chatbotKeyForm.name} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, name: value }))} />
-                      <FormInput label="Provider" value={chatbotKeyForm.provider} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, provider: value }))} />
+                      <FormInput label="Tên cấu hình" value={chatbotKeyForm.name} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, name: value }))} />
                       <div className="md:col-span-2">
-                        <FormInput label={chatbotKeyForm.id ? 'API key mới nếu muốn thay' : 'API key'} type="password" value={chatbotKeyForm.api_key} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, api_key: value }))} />
+                        <FormInput label={chatbotKeyForm.id ? 'Mã kết nối mới nếu muốn thay' : 'Mã kết nối'} type="password" value={chatbotKeyForm.api_key} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, api_key: value }))} />
                       </div>
-                      <FormInput label="Base URL" value={chatbotKeyForm.base_url} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, base_url: value }))} />
-                      <FormInput label="Model" value={chatbotKeyForm.model} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, model: value }))} />
-                      <FormSelect
-                        label="Thinking effort"
-                        value={chatbotKeyForm.reasoning_effort}
-                        onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, reasoning_effort: value }))}
-                        options={[['max', 'Max'], ['high', 'High']]}
-                      />
                       <FormSelect
                         label="Trạng thái"
                         value={String(chatbotKeyForm.is_active)}
@@ -2080,19 +2071,19 @@ export function AdminOverviewPage() {
                       <div className="md:col-span-2">
                         <FormInput label="Ghi chú" value={chatbotKeyForm.note} onChange={(value) => setChatbotKeyForm((prev) => ({ ...prev, note: value }))} />
                       </div>
-                      <ActionRow saving={saving} onReset={resetChatbotKeyForm} submitLabel={chatbotKeyForm.id ? 'Cập nhật key' : 'Thêm key'} />
+                      <ActionRow saving={saving} onReset={resetChatbotKeyForm} submitLabel={chatbotKeyForm.id ? 'Cập nhật cấu hình' : 'Thêm cấu hình'} />
                     </form>
                   </section>
 
                   <section className="space-y-4 rounded-[1.75rem] border border-stone-100 bg-white p-5 shadow-[0_15px_35px_rgba(165,146,109,0.08)]">
                     <div>
                       <h4 className="text-xl font-bold text-stone-900">Cấu hình khuyến nghị</h4>
-                      <p className="mt-1 text-sm text-stone-500">Dùng `deepseek-v4-pro` với thinking mode bật sẵn và effort `max` để chatbot tư vấn cao cấp hơn cho khách hàng.</p>
+                      <p className="mt-1 text-sm text-stone-500">Ưu tiên cấu hình tư vấn có khả năng phân tích sâu để đưa ra gợi ý sản phẩm phù hợp hơn cho khách hàng.</p>
                     </div>
                     <div className="grid gap-3">
-                      <MiniDashboardStat label="Model mặc định" value="deepseek-v4-pro" highlight />
-                      <MiniDashboardStat label="Thinking" value="Enabled" />
-                      <MiniDashboardStat label="Effort" value="max" />
+                      <MiniDashboardStat label="Trợ lý mặc định" value="TMC AI" highlight />
+                      <MiniDashboardStat label="Phân tích" value="Đang bật" />
+                      <MiniDashboardStat label="Mức xử lý" value="Cao" />
                     </div>
                   </section>
                 </div>
@@ -2100,9 +2091,9 @@ export function AdminOverviewPage() {
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Tên key</Th>
-                      <Th>Key</Th>
-                      <Th>Model</Th>
+                      <Th>Tên cấu hình</Th>
+                      <Th>Mã kết nối</Th>
+                      <Th>Cấu hình</Th>
                       <Th>Trạng thái</Th>
                       <Th>Hoạt động gần nhất</Th>
                       <Th></Th>
@@ -2117,8 +2108,8 @@ export function AdminOverviewPage() {
                         </Td>
                         <Td>{key.masked_key}</Td>
                         <Td>
-                          <div className="font-semibold text-stone-800">{key.model}</div>
-                          <div className="text-xs text-stone-500">{key.reasoning_effort}</div>
+                          <div className="font-semibold text-stone-800">Đã thiết lập</div>
+                          <div className="text-xs text-stone-500">Ẩn thông tin kỹ thuật</div>
                         </Td>
                         <Td>
                           <div>{key.is_active ? 'Đang dùng' : 'Tạm tắt'}</div>
@@ -2143,7 +2134,7 @@ export function AdminOverviewPage() {
                                 note: key.note || '',
                               })
                             }
-                            onDelete={() => void handleDelete(`chatbot key ${key.name}`, () => adminApi.deleteChatbotKey(key.id))}
+                            onDelete={() => void handleDelete(`cấu hình trợ lý ${key.name}`, () => adminApi.deleteChatbotKey(key.id))}
                           />
                         </Td>
                       </tr>
