@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import re
 import time
 from datetime import datetime, timezone
 
@@ -19,6 +20,21 @@ from app.services.notifications import create_notification, notify_admins
 from app.services.sepay import make_qr_url
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
+
+
+def _extract_payment_code(payload: dict) -> str | None:
+    direct_code = str(payload.get("code") or "").strip().upper()
+    if direct_code:
+        return direct_code
+
+    prefix = (settings.SEPAY_PAYMENT_PREFIX or "TMC").upper()
+    pattern = re.compile(rf"\b{re.escape(prefix)}\d{{6,}}\b", re.IGNORECASE)
+    for field in ("content", "description"):
+        value = str(payload.get(field) or "")
+        match = pattern.search(value)
+        if match:
+            return match.group(0).upper()
+    return None
 
 
 def _verify_hmac(raw_body: bytes, signature: str | None, timestamp: str | None) -> None:
@@ -76,7 +92,7 @@ def _log_webhook(db: Session, payload: dict, raw_payload: str, status: str, mess
 
     log = SePayWebhookLog(
         transaction_id=transaction_id,
-        payment_code=payload.get("code"),
+        payment_code=_extract_payment_code(payload),
         transfer_amount=int(payload.get("transferAmount") or 0),
         transfer_type=payload.get("transferType"),
         account_number=payload.get("accountNumber"),
@@ -145,7 +161,7 @@ async def sepay_webhook(
     if existing_log:
         return {"success": True}
 
-    code = payload.get("code")
+    code = _extract_payment_code(payload)
     transfer_type = payload.get("transferType")
     transfer_amount = int(payload.get("transferAmount") or 0)
     account_number = str(payload.get("accountNumber") or "")

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { authStorage, orderApi, paymentApi, type CheckoutSettings, type Order, type SePayPaymentStatus } from '../services/api';
+import { authStorage, orderApi, paymentApi, type CheckoutSettings, type Order, type SePayPaymentStatus, type UserOut } from '../services/api';
 import { cartStorage, type CartItem } from '../services/cart';
 
 function currency(value: number) {
@@ -21,7 +21,7 @@ function splitFullName(fullName: string | undefined) {
 export function CheckoutPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const currentUser = authStorage.getUser();
+  const [currentUser] = useState<UserOut | null>(() => authStorage.getUser());
   const [items, setItems] = useState<CartItem[]>([]);
   const [settings, setSettings] = useState<CheckoutSettings | null>(null);
   const [discountCode, setDiscountCode] = useState('');
@@ -61,7 +61,7 @@ export function CheckoutPage() {
 
     void loadCheckoutSettings();
     return unsubscribe;
-  }, [currentUser, navigate]);
+  }, [currentUser?.id, navigate]);
 
   const subtotal = useMemo(
     () => items.reduce((sum, item) => {
