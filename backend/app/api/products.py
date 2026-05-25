@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import desc
 from typing import Optional
 from app.core.deps import get_db, require_admin, get_current_user
 from app.models.product import Product
+from app.models.category import Category
 from app.models.user import User
 from app.models.product_review import ProductReview
 from app.models.product_image import ProductImage
 from app.models.product_discount import ProductDiscount
-from app.schemas import ProductOut, ProductCreate, ProductUpdate, ReviewCreate, ReviewOut, ProductImageOut
+from app.models.wholesale_tier import WholesaleTier
+from app.schemas import ProductOut, ProductCreate, ProductUpdate, ReviewCreate, ReviewOut, ProductImageOut, WholesaleTierOut
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -20,13 +22,15 @@ def list_products(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     badge: Optional[str] = None,
+    sort: Optional[str] = None,
     limit: int = Query(50, le=100),
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
     q = db.query(Product).options(joinedload(Product.category), joinedload(Product.brand), joinedload(Product.discount)).filter(Product.is_active == True)
     if category_id:
-        q = q.filter(Product.category_id == category_id)
+        child_ids = [row.id for row in db.query(Category.id).filter(Category.parent_id == category_id).all()]
+        q = q.filter(Product.category_id.in_([category_id, *child_ids]))
     if brand_id:
         q = q.filter(Product.brand_id == brand_id)
     if search:
@@ -37,7 +41,28 @@ def list_products(
         q = q.filter(Product.retail_price <= max_price)
     if badge:
         q = q.filter(Product.badge == badge)
+    if sort == "price_asc":
+        q = q.order_by(Product.retail_price.asc(), Product.id.desc())
+    elif sort == "price_desc":
+        q = q.order_by(Product.retail_price.desc(), Product.id.desc())
+    elif sort == "created_at":
+        q = q.order_by(Product.created_at.desc(), Product.id.desc())
+    elif sort == "sold":
+        q = q.order_by(desc(Product.badge == "BEST SELLER"), Product.id.desc())
+    elif sort == "rating":
+        q = q.order_by(Product.id.desc())
+    else:
+        q = q.order_by(Product.id.desc())
     return q.offset(offset).limit(limit).all()
+
+@router.get("/wholesale-tiers", response_model=list[WholesaleTierOut])
+def list_public_wholesale_tiers(db: Session = Depends(get_db)):
+    return (
+        db.query(WholesaleTier)
+        .filter(WholesaleTier.is_active == True)
+        .order_by(WholesaleTier.min_order_total.asc(), WholesaleTier.id.asc())
+        .all()
+    )
 
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: Session = Depends(get_db)):

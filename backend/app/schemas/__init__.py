@@ -120,17 +120,20 @@ class CategoryCreate(BaseModel):
     name: str
     slug: str
     image_url: Optional[str] = None
+    parent_id: Optional[int] = None
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
     image_url: Optional[str] = None
+    parent_id: Optional[int] = None
 
 class CategoryOut(BaseModel):
     id: int
     name: str
     slug: str
     image_url: Optional[str]
+    parent_id: Optional[int] = None
     class Config:
         from_attributes = True
 
@@ -201,6 +204,7 @@ class ProductOut(BaseModel):
     brand_id: Optional[int]
     retail_price: float
     wholesale_price: Optional[float]
+    variant_options: Optional[str] = None
     badge: Optional[str]
     stock: int
     is_active: bool
@@ -221,6 +225,7 @@ class ProductCreate(BaseModel):
     brand_id: Optional[int] = None
     retail_price: float
     wholesale_price: Optional[float] = None
+    variant_options: Optional[str] = None
     badge: Optional[str] = None
     stock: int = 100
     is_active: bool = True
@@ -233,6 +238,7 @@ class ProductUpdate(BaseModel):
     brand_id: Optional[int] = None
     retail_price: Optional[float] = None
     wholesale_price: Optional[float] = None
+    variant_options: Optional[str] = None
     badge: Optional[str] = None
     stock: Optional[int] = None
     is_active: Optional[bool] = None

@@ -17,6 +17,8 @@ def sync_runtime_schema(engine: Engine) -> None:
     Base.metadata.create_all(engine)
 
     _add_column_if_missing(engine, "discount_settings", "default_shipping_fee", "default_shipping_fee FLOAT DEFAULT 30000")
+    _add_column_if_missing(engine, "categories", "parent_id", "parent_id INTEGER REFERENCES categories(id)")
+    _add_column_if_missing(engine, "products", "variant_options", "variant_options TEXT")
 
     order_columns = {
         "payment_method": "payment_method VARCHAR(20) DEFAULT 'cod'",

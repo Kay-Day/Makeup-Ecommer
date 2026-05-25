@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { toast } from './toast';
 export { API_BASE_URL, UPLOADS_BASE_URL } from '../config/server';
-import { API_BASE_URL as CONFIG_API_BASE_URL } from '../config/server';
+import { API_BASE_URL as CONFIG_API_BASE_URL, UPLOADS_BASE_URL } from '../config/server';
 
 // Localhost config moved to ../config/server.ts for easier switching.
 
@@ -32,6 +32,7 @@ export interface Category {
   name: string;
   slug: string;
   image_url: string | null;
+  parent_id: number | null;
 }
 
 export interface Brand {
@@ -97,6 +98,7 @@ export interface Product {
   brand_id: number | null;
   retail_price: number;
   wholesale_price: number | null;
+  variant_options: string | null;
   badge: string | null;
   stock: number;
   is_active: boolean;
@@ -402,6 +404,7 @@ export const productApi = {
   createReview: (productId: number, payload: { rating: number; comment?: string }) =>
     api.post<ProductReview>(`/products/${productId}/reviews`, payload),
   getImages: (productId: number) => api.get<ProductImage[]>(`/products/${productId}/images`),
+  getWholesaleTiers: () => api.get<WholesaleTier[]>('/products/wholesale-tiers'),
 };
 
 export const categoryApi = {
@@ -482,6 +485,18 @@ export const uploadApi = {
   },
 };
 
+export function assetUrl(value: string | null | undefined) {
+  if (!value) return '';
+  if (value.startsWith('/uploads/')) return `${UPLOADS_BASE_URL}${value.slice('/uploads'.length)}`;
+  try {
+    const url = new URL(value);
+    if (url.pathname.startsWith('/uploads/')) return `${UPLOADS_BASE_URL}${url.pathname.slice('/uploads'.length)}`;
+  } catch {
+    // Keep non-URL values as provided.
+  }
+  return value;
+}
+
 export const adminApi = {
   getDashboard: () => api.get<DashboardResponse>('/admin/dashboard'),
   getDiscountSettings: () => api.get<DiscountSetting>('/admin/discount-settings'),
@@ -561,16 +576,16 @@ export const adminApi = {
   deleteBrand: (id: number) => api.delete(`/admin/brands/${id}`),
 
   getCategories: () => api.get<Category[]>('/admin/categories'),
-  createCategory: (payload: { name: string; slug: string; image_url?: string | null }) =>
+  createCategory: (payload: { name: string; slug: string; image_url?: string | null; parent_id?: number | null }) =>
     api.post<Category>('/admin/categories', payload),
-  updateCategory: (id: number, payload: Partial<{ name: string; slug: string; image_url: string | null }>) =>
+  updateCategory: (id: number, payload: Partial<{ name: string; slug: string; image_url: string | null; parent_id: number | null }>) =>
     api.put<Category>(`/admin/categories/${id}`, payload),
   deleteCategory: (id: number) => api.delete(`/admin/categories/${id}`),
 
   getProducts: () => api.get<Product[]>('/admin/products'),
-  createProduct: (payload: Omit<Product, 'id' | 'category' | 'brand'>) =>
+  createProduct: (payload: Omit<Product, 'id' | 'category' | 'brand' | 'images' | 'avg_rating' | 'review_count' | 'discount'>) =>
     api.post<Product>('/admin/products', payload),
-  updateProduct: (id: number, payload: Partial<Omit<Product, 'id' | 'category' | 'brand'>>) =>
+  updateProduct: (id: number, payload: Partial<Omit<Product, 'id' | 'category' | 'brand' | 'images' | 'avg_rating' | 'review_count' | 'discount'>>) =>
     api.put<Product>(`/admin/products/${id}`, payload),
   deleteProduct: (id: number) => api.delete(`/admin/products/${id}`),
 

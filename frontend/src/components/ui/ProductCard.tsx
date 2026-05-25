@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import type { ProductDiscount } from '../../services/api';
+import { assetUrl, type ProductDiscount } from '../../services/api';
 
 export interface ProductCardProps {
   id: string;
@@ -63,10 +63,15 @@ export function ProductCard({ id, name, subtitle, brandName, price, imageUrl, ba
       <Link to={`/product/${id}`} className="block">
         <div className="aspect-[4/5] bg-stone-100 rounded-2xl overflow-hidden mb-4 relative shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1.5">
           <img
-            src={imageUrl}
+            src={assetUrl(imageUrl)}
             alt={name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${imageUrl ? '' : 'hidden'}`}
           />
+          {!imageUrl ? (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 to-emerald-50 text-emerald-800">
+              <span className="material-symbols-outlined text-4xl">image</span>
+            </div>
+          ) : null}
           <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl pointer-events-none" />
 
           {stock === 0 && (

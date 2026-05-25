@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
 import { motion } from 'framer-motion';
-import { productApi, bannerApi, categoryApi, brandApi, blogApi, type Banner, type ProductDiscount } from '../services/api';
+import { assetUrl, productApi, bannerApi, categoryApi, brandApi, blogApi, type Banner, type ProductDiscount } from '../services/api';
 import type { Product, Category, Brand, BlogArticle } from '../services/api';
 import type { Variants } from 'framer-motion';
 
@@ -97,12 +97,12 @@ export function HomePage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [blogs, setBlogs] = useState<BlogArticle[]>([]);
   const [activeProductTab, setActiveProductTab] = useState<'new' | 'bestseller' | 'favorite'>('new');
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [flashEndTime, setFlashEndTime] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   const selectProductTab = (tab: 'new' | 'bestseller' | 'favorite') => {
     setActiveProductTab(tab);
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -111,6 +111,39 @@ export function HomePage() {
     categoryApi.getAll().then(res => setCategories(res.data)).catch(console.error);
     brandApi.getAll().then(res => setBrands(res.data)).catch(console.error);
     blogApi.getArticles().then(res => setBlogs(res.data.slice(0, 3))).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const viewedIds = JSON.parse(localStorage.getItem('tmc_recent_product_ids') || '[]') as number[];
+    const searchTerms = JSON.parse(localStorage.getItem('tmc_recent_search_terms') || '[]') as string[];
+    const lastSearch = searchTerms[0];
+    const loadRecommended = async () => {
+      try {
+        if (viewedIds.length > 0) {
+          const responses = await Promise.all(viewedIds.slice(0, 4).map((productId) => productApi.getById(productId).catch(() => null)));
+          const viewed = responses.map((response) => response?.data).filter(Boolean) as Product[];
+          const categories = Array.from(new Set(viewed.map((item) => item.category_id).filter(Boolean))) as number[];
+          if (categories.length > 0) {
+            const categoryProducts = await Promise.all(categories.map((categoryId) => productApi.getAll({ category_id: categoryId, limit: 8 })));
+            const merged = categoryProducts
+              .flatMap((response) => response.data)
+              .filter((item, index, list) => !viewedIds.includes(item.id) && list.findIndex((candidate) => candidate.id === item.id) === index)
+              .slice(0, 4);
+            setRecommendedProducts(merged.length ? merged : viewed);
+            return;
+          }
+          setRecommendedProducts(viewed);
+          return;
+        }
+        if (lastSearch) {
+          const response = await productApi.getAll({ search: lastSearch, limit: 4 });
+          setRecommendedProducts(response.data);
+        }
+      } catch {
+        setRecommendedProducts([]);
+      }
+    };
+    void loadRecommended();
   }, []);
 
   useEffect(() => {
@@ -168,7 +201,7 @@ export function HomePage() {
                   initial={{ scale: 1.08 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 7, ease: 'easeOut' }}
-                  src={'image_url' in banner ? (banner as Banner).image_url : (banner as typeof FALLBACK_BANNERS[0]).image}
+                  src={'image_url' in banner ? assetUrl((banner as Banner).image_url) : (banner as typeof FALLBACK_BANNERS[0]).image}
                   alt={'title' in banner ? banner.title : ''}
                   className="w-full h-full object-cover"
                 />
@@ -216,12 +249,12 @@ export function HomePage() {
           <h2 className="font-h2 text-2xl md:text-3xl font-bold text-on-surface">Khám Phá Danh Mục</h2>
         </motion.div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-8">
-          {(categories.length > 0 ? categories.slice(0, 4) : MOCK_CATEGORIES).map((cat, idx) => (
+          {(categories.length > 0 ? categories.filter((category) => !category.parent_id).slice(0, 4) : MOCK_CATEGORIES).map((cat, idx) => (
             <motion.div key={cat.id} variants={fadeInUp}>
               <Link to={'slug' in cat ? `/shop?category=${cat.slug}` : cat.link} className="group flex flex-col items-center">
                 <div className="w-28 h-28 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-2xl overflow-hidden mb-4 md:mb-6 shadow-md group-hover:shadow-xl transition-all duration-500 border-2 border-white group-hover:border-emerald-200" style={{animationDelay: `${idx * 0.5}s`}}>
                   {'image_url' in cat && cat.image_url
-                    ? <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    ? <img src={assetUrl(cat.image_url)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     : 'image' in cat && cat.image
                     ? <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     : <div className="w-full h-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
@@ -289,7 +322,8 @@ export function HomePage() {
           <span className="font-label-caps text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2 block">{t('home.brands_title')}</span>
           <h2 className="font-h2 text-2xl md:text-3xl font-bold text-on-surface">Thương Hiệu Hàng Đầu</h2>
         </motion.div>
-        <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+        <div className="-mx-6 overflow-x-auto px-6 pb-3 md:-mx-16 md:px-16">
+          <div className="flex min-w-max justify-start gap-4 md:gap-8 lg:justify-center">
           {(brands.length > 0 ? brands : MOCK_BRANDS).map((brand, idx) => {
             const gradients = [
               'from-rose-500 to-pink-600',
@@ -306,7 +340,7 @@ export function HomePage() {
               <Link to={`/search?brand=${brand.id}`} className="flex items-center justify-center w-full h-full p-3 sm:p-4 md:p-5">
                 {imgSrc ? (
                   <img
-                    src={imgSrc}
+                    src={assetUrl(imgSrc)}
                     alt={brand.name}
                     className="max-w-full max-h-full object-cover rounded-xl"
                     onError={(e) => {
@@ -322,6 +356,7 @@ export function HomePage() {
             </motion.div>
             );
           })}
+          </div>
         </div>
       </motion.section>
 
@@ -415,7 +450,7 @@ export function HomePage() {
                 <Link to={`/blog/${blog.id}`} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500 block">
                   <div className="aspect-[4/3] overflow-hidden relative">
                     {'image_url' in blog && blog.image_url
-                      ? <img src={blog.image_url} alt={blog.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"/>
+                      ? <img src={assetUrl(blog.image_url)} alt={blog.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"/>
                       : 'image' in blog && blog.image
                       ? <img src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"/>
                       : <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300 flex items-center justify-center">
@@ -449,7 +484,7 @@ export function HomePage() {
           <h2 className="font-h2 text-2xl md:text-3xl font-bold text-on-surface">Dành Riêng Cho Bạn</h2>
         </motion.div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {products.slice(0, 4).reverse().map(product => (
+          {(recommendedProducts.length > 0 ? recommendedProducts : products.slice(0, 4).reverse()).map(product => (
             <motion.div key={`rec-${product.id}`} variants={fadeInUp}>
               <ProductCard product={product} />
             </motion.div>
@@ -472,7 +507,13 @@ function ProductCard({ product }: { product: Product }) {
     <div className="group cursor-pointer relative">
       <Link to={`/product/${product.id}`} className="block">
         <div className="aspect-[4/5] bg-stone-100 rounded-2xl overflow-hidden mb-4 relative shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1.5">
-          <img src={product.image_url || ''} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          {product.image_url ? (
+            <img src={assetUrl(product.image_url)} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 to-emerald-50 text-emerald-800">
+              <span className="material-symbols-outlined text-4xl">image</span>
+            </div>
+          )}
           <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl pointer-events-none" />
 
           {(product.badge || discountBadge) && (

@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { productApi, wishlistApi, type ProductReview, type WishlistItem } from '../services/api';
+import { assetUrl, productApi, wishlistApi, type ProductReview, type WishlistItem, type WholesaleTier } from '../services/api';
 import type { Product } from '../services/api';
 import { ProductCard } from '../components/ui/ProductCard';
 import { cartStorage } from '../services/cart';
@@ -40,6 +40,37 @@ function isDiscountActive(discount: ProductDiscount): boolean {
   const start = new Date(discount.start_time).getTime();
   const end = new Date(discount.end_time).getTime();
   return discount.is_active && now >= start && now <= end;
+}
+
+type ProductVariantOption = {
+  name: string;
+  image_url?: string;
+  stock?: number;
+};
+
+function parseVariantOptions(value: string | null | undefined): ProductVariantOption[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => ({
+          name: String(item?.name || '').trim(),
+          image_url: item?.image_url ? String(item.image_url).trim() : undefined,
+          stock: Number.isFinite(Number(item?.stock)) ? Number(item.stock) : undefined,
+        }))
+        .filter((item) => item.name);
+    }
+  } catch {
+    return [];
+  }
+  return [];
+}
+
+function compactMoney(value: number) {
+  if (value >= 1000000) return `${value / 1000000}tr`;
+  if (value >= 1000) return `${value / 1000}k`;
+  return String(value);
 }
 
 function CountdownBanner({ endTime }: { endTime: string }) {
@@ -81,8 +112,11 @@ export function ProductDetailsPage() {
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [purchaseMode, setPurchaseMode] = useState<'retail' | 'wholesale'>('retail');
   const [added, setAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [wholesaleTiers, setWholesaleTiers] = useState<WholesaleTier[]>([]);
 
   // Review form
   const [reviewRating, setReviewRating] = useState(5);
@@ -101,7 +135,11 @@ export function ProductDetailsPage() {
             productApi.getReviews(pid),
           ]);
           setProduct(productRes.data);
+          setSelectedVariantIndex(0);
+          setSelectedImage(null);
           setReviews(reviewsRes.data);
+          const currentIds = JSON.parse(localStorage.getItem('tmc_recent_product_ids') || '[]') as number[];
+          localStorage.setItem('tmc_recent_product_ids', JSON.stringify([pid, ...currentIds.filter((item) => item !== pid)].slice(0, 12)));
 
           if (productRes.data.category_id) {
             const relatedRes = await productApi.getAll({ category_id: productRes.data.category_id });
@@ -123,6 +161,10 @@ export function ProductDetailsPage() {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    productApi.getWholesaleTiers().then((res) => setWholesaleTiers(res.data)).catch(() => setWholesaleTiers([]));
+  }, []);
+
   const allImages = useMemo(() => {
     if (!product) return [];
     const imgs = product.images?.length ? [...product.images].sort((a, b) => a.sort_order - b.sort_order) : [];
@@ -136,6 +178,8 @@ export function ProductDetailsPage() {
     () => wishlistItems.some((item) => item.product_id === product?.id),
     [wishlistItems, product],
   );
+  const variants = useMemo(() => parseVariantOptions(product?.variant_options), [product?.variant_options]);
+  const selectedVariant = variants[selectedVariantIndex];
 
   const handleToggleWishlist = async () => {
     if (!currentUser || !product || wishlistLoading) return;
@@ -212,8 +256,28 @@ export function ProductDetailsPage() {
 
   const activeDiscount = product?.discount && isDiscountActive(product.discount) ? product.discount : null;
   const salePrice = activeDiscount ? Math.round(product!.retail_price * (1 - activeDiscount.discount_percent / 100)) : null;
+  const retailUnitPrice = salePrice || product?.retail_price || 0;
+  const retailSubtotal = retailUnitPrice * quantity;
+  const wholesaleBreaks = (wholesaleTiers.length > 0 ? wholesaleTiers : [
+    { id: 0, name: 'Giá sỉ cấp độ 1', min_order_total: 2000000, max_order_total: 8000000, discount_percent: 5, is_active: true, note: null, created_at: null, updated_at: null },
+    { id: 1, name: 'Giá sỉ cấp độ 2', min_order_total: 8000000, max_order_total: 15000000, discount_percent: 10, is_active: true, note: null, created_at: null, updated_at: null },
+  ]).map((tier) => ({
+    label: tier.max_order_total ? `${compactMoney(tier.min_order_total)} - ${compactMoney(tier.max_order_total)}` : `>= ${compactMoney(tier.min_order_total)}`,
+    name: tier.name,
+    minTotal: tier.min_order_total,
+    maxTotal: tier.max_order_total,
+    discountPercent: tier.discount_percent,
+  }));
+  const selectedWholesaleBreak =
+    wholesaleBreaks.find((item) => retailSubtotal >= item.minTotal && (item.maxTotal == null || retailSubtotal < item.maxTotal)) ||
+    wholesaleBreaks[0];
+  const wholesaleBasePrice = product?.wholesale_price || retailUnitPrice;
+  const currentUnitPrice =
+    purchaseMode === 'wholesale'
+      ? Math.round(wholesaleBasePrice * (1 - selectedWholesaleBreak.discountPercent / 100))
+      : retailUnitPrice;
 
-  const currentStock = product?.stock ?? 0;
+  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
   const canIncrease = quantity < currentStock;
   const isOutOfStock = currentStock <= 0;
 
@@ -245,14 +309,27 @@ export function ProductDetailsPage() {
   const handleQuantityChange = (delta: number) => {
     if (!product) return;
     const newQuantity = quantity + delta;
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
+    if (newQuantity >= 1 && newQuantity <= currentStock) {
       setQuantity(newQuantity);
     }
   };
 
   const handleAddToCart = () => {
     if (!product) return;
-    cartStorage.addItem(product, quantity);
+    const displayProduct = selectedVariant
+      ? {
+          ...product,
+          name: `${product.name} - ${selectedVariant.name}`,
+          image_url: selectedVariant.image_url || product.image_url,
+          stock: currentStock,
+        }
+      : product;
+    cartStorage.addItem(
+      purchaseMode === 'wholesale'
+        ? { ...displayProduct, retail_price: currentUnitPrice, badge: product.badge || selectedWholesaleBreak.label }
+        : displayProduct,
+      quantity,
+    );
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
@@ -291,7 +368,7 @@ export function ProductDetailsPage() {
                     <img
                       className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                       alt={product.name}
-                      src={selectedImage || product.image_url || ''}
+                      src={assetUrl(selectedImage || selectedVariant?.image_url || product.image_url)}
                     />
                   ) : (
                     <div className="flex h-full min-h-[420px] items-center justify-center bg-sky-50 text-sky-700">
@@ -315,7 +392,7 @@ export function ProductDetailsPage() {
                         }`}
                         onClick={() => img.id === 0 ? setSelectedImage(null) : setSelectedImage(img.image_url)}
                       >
-                        <img className="h-full w-full object-cover" alt="" src={img.image_url} />
+                        <img className="h-full w-full object-cover" alt="" src={assetUrl(img.image_url)} />
                       </button>
                     ))}
                   </div>
@@ -351,7 +428,7 @@ export function ProductDetailsPage() {
                       : 'bg-emerald-50 text-emerald-700'
                   }`}
                 >
-                  {isOutOfStock ? t('product.out_of_stock') : t('product.stock_left', { count: product.stock })}
+                  {isOutOfStock ? t('product.out_of_stock') : t('product.stock_left', { count: currentStock })}
                 </span>
               </div>
 
@@ -359,11 +436,60 @@ export function ProductDetailsPage() {
                 {product.name}
               </h1>
 
-              <p className="mt-5 text-base leading-8 text-stone-600">
-                {product.description || t('product.description_fallback')}
-              </p>
+              <div className="mt-5 rounded-[1.25rem] border border-sky-100 bg-white/75 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-700">Mô tả sản phẩm</p>
+                <p className="mt-3 text-base leading-8 text-stone-600">
+                  {product.description || t('product.description_fallback')}
+                </p>
+              </div>
 
               <div className="mt-8 rounded-[1.75rem] border border-sky-100 bg-white p-6 shadow-[0_18px_45px_rgba(24,58,92,0.06)]">
+                {variants.length > 0 ? (
+                  <div className="mb-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-stone-400">Biến thể</p>
+                      <span className="text-sm font-semibold text-sky-700">{selectedVariant?.name}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {variants.map((variant, index) => (
+                        <button
+                          key={`${variant.name}-${index}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedVariantIndex(index);
+                            setSelectedImage(variant.image_url || null);
+                            setQuantity(1);
+                          }}
+                          className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                            selectedVariantIndex === index
+                              ? 'border-sky-500 bg-sky-50 text-sky-900'
+                              : 'border-stone-200 bg-white text-stone-600 hover:border-sky-200'
+                          } ${variant.stock === 0 ? 'opacity-45' : ''}`}
+                        >
+                          {variant.image_url ? <img src={assetUrl(variant.image_url)} alt="" className="h-8 w-8 rounded-lg object-cover" /> : null}
+                          <span>{variant.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-sky-100 bg-slate-50 p-1">
+                  {(['retail', 'wholesale'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => {
+                        setPurchaseMode(mode);
+                        setQuantity(mode === 'wholesale' ? Math.max(quantity, 1) : Math.min(quantity, currentStock || quantity));
+                      }}
+                      className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
+                        purchaseMode === mode ? 'bg-white text-sky-800 shadow-sm' : 'text-stone-500 hover:text-sky-700'
+                      }`}
+                    >
+                      {mode === 'retail' ? 'Mua lẻ' : 'Mua sỉ'}
+                    </button>
+                  ))}
+                </div>
                 {activeDiscount ? (
                   <div className="mb-4 flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-red-500 px-4 py-1.5 text-[11px] font-bold text-white">-{Math.round(activeDiscount.discount_percent)}%</span>
@@ -388,7 +514,7 @@ export function ProductDetailsPage() {
                     <div className="rounded-2xl bg-sky-50 px-5 py-4 text-right">
                       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-sky-700">{t('product.wholesale_price')}</p>
                       <div className="mt-1 text-xl font-bold text-sky-900">
-                        {formatCurrency(product.wholesale_price)}
+                        {formatCurrency(wholesaleBasePrice)}
                       </div>
                     </div>
                   ) : null}
@@ -396,8 +522,32 @@ export function ProductDetailsPage() {
 
                 {product.wholesale_price ? (
                   <p className="mt-4 text-sm leading-7 text-stone-500">
-                    {t('product.wholesale_note')}
+                    Giá sỉ sẽ tự đổi theo tổng tiền hàng hiện tại. Mốc đang áp dụng: {selectedWholesaleBreak.name} ({selectedWholesaleBreak.discountPercent}%).
                   </p>
+                ) : null}
+
+                {purchaseMode === 'wholesale' ? (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {wholesaleBreaks.map((tier) => (
+                      <button
+                        key={tier.label}
+                        type="button"
+                        onClick={() => {
+                          const targetQuantity = Math.max(1, Math.ceil(tier.minTotal / Math.max(retailUnitPrice, 1)));
+                          setQuantity(Math.min(targetQuantity, currentStock || targetQuantity));
+                        }}
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          selectedWholesaleBreak.label === tier.label
+                            ? 'border-sky-500 bg-sky-50 text-sky-900'
+                            : 'border-stone-200 bg-white text-stone-600 hover:border-sky-200'
+                        }`}
+                      >
+                        <span className="block text-xs font-bold uppercase tracking-[0.16em]">Tổng đơn {tier.label}</span>
+                        <span className="mt-2 block text-xl font-bold">{formatCurrency(Math.round(wholesaleBasePrice * (1 - tier.discountPercent / 100)))}</span>
+                        <span className="mt-1 block text-xs text-stone-500">{tier.name} - giảm {tier.discountPercent}%</span>
+                      </button>
+                    ))}
+                  </div>
                 ) : null}
 
                 <div className="mt-6 grid gap-3 rounded-[1.3rem] bg-slate-50 p-4">
@@ -426,7 +576,7 @@ export function ProductDetailsPage() {
                       <button
                         onClick={() => handleQuantityChange(1)}
                         className="flex h-10 w-10 items-center justify-center rounded-full text-sky-800 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        disabled={!canIncrease}
+                        disabled={purchaseMode === 'retail' ? !canIncrease : quantity >= currentStock}
                       >
                         <span className="material-symbols-outlined text-base">add</span>
                       </button>
@@ -435,7 +585,9 @@ export function ProductDetailsPage() {
                   <div className="text-left sm:text-right">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-stone-400">{t('product.estimated_total')}</p>
                     <div className="mt-2 text-2xl font-bold text-slate-900">
-                      {salePrice ? (
+                      {purchaseMode === 'wholesale' ? (
+                        <span className="text-sky-800">{formatCurrency(currentUnitPrice * quantity)}</span>
+                      ) : salePrice ? (
                         <>
                           <span className="text-red-600">{formatCurrency(salePrice * quantity)}</span>
                           <span className="ml-2 text-sm text-stone-400 line-through">{formatCurrency(product.retail_price * quantity)}</span>

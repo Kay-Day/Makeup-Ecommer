@@ -11,10 +11,10 @@ class Settings(BaseSettings):
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_DEFAULT_MODEL: str = "deepseek-v4-pro"
     DEEPSEEK_API_KEY: str = ""
-    PUBLIC_BASE_URL: str = "http://160.22.107.119:8000"
+    PUBLIC_BASE_URL: str = "http://giangtmc.io.vn:8000"
     # Localhost fallback:
     # PUBLIC_BASE_URL: str = "http://localhost:8000"
-    CORS_ORIGINS: str = "http://160.22.107.119,http://160.22.107.119:5173,http://160.22.107.119:5174,http://160.22.107.119:3000"
+    CORS_ORIGINS: str = "http://giangtmc.io.vn,http://giangtmc.io.vn:8000,https://giangtmc.io.vn,https://giangtmc.io.vn:8000,http://160.22.107.119,http://160.22.107.119:8000,http://160.22.107.119:5173,http://160.22.107.119:5174,http://160.22.107.119:3000"
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8000
     AUTO_CREATE_TABLES: bool = True

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import logo from '../../assets/Logo.png';
 
 export function Footer() {
   const { t } = useTranslation();
@@ -19,8 +20,14 @@ export function Footer() {
     <footer className="bg-stone-900 text-stone-300 w-full pt-16 md:pt-20 pb-10 px-6 md:px-16">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 max-w-[1440px] mx-auto">
         <div className="col-span-2 md:col-span-1">
-          <div className="font-bold text-white text-xl mb-4">TMC</div>
+          <Link to="/" className="mb-4 inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-stone-700 bg-white">
+            <img src={logo} alt="TMC" className="h-full w-full object-contain p-1" />
+          </Link>
           <p className="text-sm leading-relaxed text-stone-400 max-w-xs">{t('footer.description')}</p>
+          <p className="mt-4 text-sm leading-6 text-stone-400">
+            TMC Medical Vietnam<br />
+            TP. Ho Chi Minh, Viet Nam
+          </p>
         </div>
         <div>
           <h5 className="font-bold text-white mb-5 uppercase text-[10px] tracking-[0.2em]">{t('footer.quick_links')}</h5>
@@ -60,10 +67,19 @@ export function Footer() {
       </div>
       <div className="max-w-[1440px] mx-auto mt-14 md:mt-20 pt-8 border-t border-stone-800 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-xs text-stone-500">{t('footer.copyright')}</p>
-        <div className="flex gap-6">
-          <a className="text-stone-500 hover:text-white transition-colors" href="https://tmcmedical.vn" target="_blank" rel="noopener noreferrer"><span className="material-symbols-outlined text-lg">public</span></a>
-          <a className="text-stone-500 hover:text-white transition-colors" href="mailto:tmccarevietnam@gmail.com"><span className="material-symbols-outlined text-lg">mail</span></a>
-          <a className="text-stone-500 hover:text-white transition-colors" href="tel:0766669266"><span className="material-symbols-outlined text-lg">call</span></a>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="https://www.facebook.com/tmcmedicalvietnam" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+            <span className="text-sm font-bold">f</span>
+          </a>
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="https://www.tiktok.com/@tmcmedical" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+            <span className="text-sm font-bold">TT</span>
+          </a>
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="https://zalo.me/0766669266" target="_blank" rel="noopener noreferrer" aria-label="Zalo">
+            <span className="text-xs font-bold">Zalo</span>
+          </a>
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="https://tmcmedical.vn" target="_blank" rel="noopener noreferrer" aria-label="Website"><span className="material-symbols-outlined text-lg">public</span></a>
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="mailto:tmccarevietnam@gmail.com" aria-label="Email"><span className="material-symbols-outlined text-lg">mail</span></a>
+          <a className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-500 transition-colors hover:border-white hover:text-white" href="tel:0766669266" aria-label="Phone"><span className="material-symbols-outlined text-lg">call</span></a>
         </div>
       </div>
     </footer>

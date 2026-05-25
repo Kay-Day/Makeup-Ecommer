@@ -485,7 +485,7 @@ def delete_brand(brand_id: int, db: Session = Depends(get_db), admin: User = Dep
 
 @router.get("/categories", response_model=list[CategoryOut])
 def list_admin_categories(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    return db.query(Category).order_by(Category.name.asc()).all()
+    return db.query(Category).order_by(Category.parent_id.isnot(None), Category.name.asc()).all()
 
 
 @router.post("/categories", response_model=CategoryOut)
@@ -494,7 +494,11 @@ def create_category(data: CategoryCreate, db: Session = Depends(get_db), admin: 
     existing = db.query(Category).filter(Category.slug == slug).first()
     if existing:
         raise HTTPException(status_code=400, detail="Category slug already exists")
-    category = Category(name=data.name, slug=slug, image_url=data.image_url)
+    if data.parent_id:
+        parent = db.query(Category).filter(Category.id == data.parent_id).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent category not found")
+    category = Category(name=data.name, slug=slug, image_url=data.image_url, parent_id=data.parent_id)
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -517,6 +521,12 @@ def update_category(
         existing = db.query(Category).filter(Category.slug == updates["slug"], Category.id != category_id).first()
         if existing:
             raise HTTPException(status_code=400, detail="Category slug already exists")
+    if updates.get("parent_id"):
+        if updates["parent_id"] == category_id:
+            raise HTTPException(status_code=400, detail="Category cannot be its own parent")
+        parent = db.query(Category).filter(Category.id == updates["parent_id"]).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent category not found")
     for key, value in updates.items():
         setattr(category, key, value)
     db.commit()

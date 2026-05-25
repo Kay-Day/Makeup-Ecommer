@@ -21,6 +21,7 @@ class Product(Base):
     brand_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
     retail_price = Column(Float, nullable=False)
     wholesale_price = Column(Float, nullable=True)
+    variant_options = Column(Text, nullable=True)
     badge = Column(String(50), nullable=True)
     stock = Column(Integer, default=100)
     is_active = Column(Boolean, default=True)

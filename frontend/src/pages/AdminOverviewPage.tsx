@@ -27,6 +27,7 @@ import {
   type SePayWebhookLog,
   type UserOut,
   type Combo,
+  assetUrl,
 } from '../services/api';
 import { RichTextEditor } from '../components/ui/RichTextEditor';
 
@@ -55,6 +56,52 @@ function slugify(value: string) {
 
 function currency(value: number) {
   return `${value.toLocaleString('vi-VN')}đ`;
+}
+
+type ProductVariantOption = {
+  name: string;
+  image_url?: string;
+  stock?: number;
+};
+
+function parseVariantOptions(value: string | null | undefined): ProductVariantOption[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => ({
+          name: String(item?.name || '').trim(),
+          image_url: item?.image_url ? String(item.image_url).trim() : undefined,
+          stock: Number.isFinite(Number(item?.stock)) ? Number(item.stock) : undefined,
+        }))
+        .filter((item) => item.name);
+    }
+  } catch {
+    // Fall through to the simple line parser below.
+  }
+  return value
+    .split('\n')
+    .map((line) => {
+      const [name = '', image_url = '', stock = ''] = line.split('|').map((part) => part.trim());
+      return {
+        name,
+        image_url: image_url || undefined,
+        stock: stock ? Number(stock) : undefined,
+      };
+    })
+    .filter((item) => item.name);
+}
+
+function variantOptionsToText(value: string | null | undefined) {
+  return parseVariantOptions(value)
+    .map((item) => [item.name, item.image_url || '', item.stock ?? ''].join(' | ').replace(/\s+\|\s+$/g, ''))
+    .join('\n');
+}
+
+function variantTextToJson(value: string) {
+  const options = parseVariantOptions(value);
+  return options.length ? JSON.stringify(options) : null;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -126,7 +173,7 @@ function ImageField({
           {uploading ? 'Đang upload...' : 'Upload ảnh'}
         </label>
         {preview ? (
-          <img src={preview} alt="Preview" className="h-20 w-20 rounded-xl border border-stone-200 object-cover" />
+          <img src={assetUrl(preview)} alt="Preview" className="h-20 w-20 rounded-xl border border-stone-200 object-cover" />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 text-xs text-stone-400">
             Preview
@@ -181,7 +228,7 @@ export function AdminOverviewPage() {
     is_active: true,
   });
   const [brandForm, setBrandForm] = useState({ id: 0, name: '', logo_url: '' });
-  const [categoryForm, setCategoryForm] = useState({ id: 0, name: '', slug: '', image_url: '' });
+  const [categoryForm, setCategoryForm] = useState({ id: 0, name: '', slug: '', image_url: '', parent_id: 0 });
   const [productForm, setProductForm] = useState({
     id: 0,
     name: '',
@@ -191,6 +238,7 @@ export function AdminOverviewPage() {
     brand_id: 0,
     retail_price: 0,
     wholesale_price: 0,
+    variant_options: '',
     badge: '',
     stock: 0,
     is_active: true,
@@ -272,7 +320,7 @@ export function AdminOverviewPage() {
 
   const resetUserForm = () => setUserForm({ id: 0, email: '', password: '', full_name: '', phone: '', role: 'customer', is_active: true });
   const resetBrandForm = () => setBrandForm({ id: 0, name: '', logo_url: '' });
-  const resetCategoryForm = () => setCategoryForm({ id: 0, name: '', slug: '', image_url: '' });
+  const resetCategoryForm = () => setCategoryForm({ id: 0, name: '', slug: '', image_url: '', parent_id: 0 });
   const resetProductForm = () =>
     setProductForm({
       id: 0,
@@ -283,6 +331,7 @@ export function AdminOverviewPage() {
       brand_id: brands[0]?.id ?? 0,
       retail_price: 0,
       wholesale_price: 0,
+      variant_options: '',
       badge: '',
       stock: 0,
       is_active: true,
@@ -448,6 +497,7 @@ export function AdminOverviewPage() {
   }, [productForm.id]);
 
   const unreadNotificationCount = notifications.filter((item) => !item.is_read).length;
+  const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
 
   const markNotificationRead = async (notificationId: number) => {
     try {
@@ -537,6 +587,7 @@ export function AdminOverviewPage() {
         name: categoryForm.name,
         slug: categoryForm.slug || slugify(categoryForm.name),
         image_url: categoryForm.image_url || null,
+        parent_id: categoryForm.parent_id || null,
       };
       if (categoryForm.id) {
         await adminApi.updateCategory(categoryForm.id, payload);
@@ -561,6 +612,7 @@ export function AdminOverviewPage() {
         brand_id: productForm.brand_id || null,
         retail_price: Number(productForm.retail_price),
         wholesale_price: Number(productForm.wholesale_price) || null,
+        variant_options: variantTextToJson(productForm.variant_options),
         badge: productForm.badge || null,
         stock: Number(productForm.stock),
         is_active: productForm.is_active,
@@ -569,7 +621,7 @@ export function AdminOverviewPage() {
         await adminApi.updateProduct(productForm.id, payload);
         showMessage('Đã cập nhật sản phẩm.');
       } else {
-        await adminApi.createProduct(payload as Omit<Product, 'id' | 'category' | 'brand'>);
+        await adminApi.createProduct(payload);
         showMessage('Đã thêm sản phẩm.');
       }
       resetProductForm();
@@ -1270,7 +1322,7 @@ export function AdminOverviewPage() {
                   <tbody>
                     {brands.map((brand) => (
                       <tr key={brand.id} className="border-t border-stone-100">
-                        <Td>{brand.logo_url ? <img src={brand.logo_url} alt={brand.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{brand.logo_url ? <img src={assetUrl(brand.logo_url)} alt={brand.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
                         <Td>{brand.name}</Td>
                         <Td>
                           <RowActions
@@ -1295,6 +1347,17 @@ export function AdminOverviewPage() {
                       onChange={(value) => setCategoryForm((prev) => ({ ...prev, name: value, slug: prev.id ? prev.slug : slugify(value) }))}
                     />
                     <FormInput label="Slug" value={categoryForm.slug} onChange={(value) => setCategoryForm((prev) => ({ ...prev, slug: value }))} />
+                    <FormSelect
+                      label="Danh mục cha"
+                      value={String(categoryForm.parent_id)}
+                      onChange={(value) => setCategoryForm((prev) => ({ ...prev, parent_id: Number(value) }))}
+                      options={[
+                        ['0', 'Không có - danh mục chính'],
+                        ...categories
+                          .filter((category) => category.id !== categoryForm.id && !category.parent_id)
+                          .map((category) => [String(category.id), category.name]),
+                      ]}
+                    />
                   </div>
                   <ImageField
                     label="Ảnh danh mục"
@@ -1311,6 +1374,7 @@ export function AdminOverviewPage() {
                     <tr>
                       <Th>Ảnh</Th>
                       <Th>Tên</Th>
+                      <Th>Danh mục cha</Th>
                       <Th>Slug</Th>
                       <Th></Th>
                     </tr>
@@ -1318,12 +1382,13 @@ export function AdminOverviewPage() {
                   <tbody>
                     {categories.map((category) => (
                       <tr key={category.id} className="border-t border-stone-100">
-                        <Td>{category.image_url ? <img src={category.image_url} alt={category.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{category.image_url ? <img src={assetUrl(category.image_url)} alt={category.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
                         <Td>{category.name}</Td>
+                        <Td>{category.parent_id ? categories.find((item) => item.id === category.parent_id)?.name || 'Danh mục con' : 'Danh mục chính'}</Td>
                         <Td>{category.slug}</Td>
                         <Td>
                           <RowActions
-                            onEdit={() => setCategoryForm({ id: category.id, name: category.name, slug: category.slug, image_url: category.image_url || '' })}
+                            onEdit={() => setCategoryForm({ id: category.id, name: category.name, slug: category.slug, image_url: category.image_url || '', parent_id: category.parent_id || 0 })}
                             onDelete={() => void handleDelete(`danh mục ${category.name}`, () => adminApi.deleteCategory(category.id))}
                           />
                         </Td>
@@ -1344,7 +1409,7 @@ export function AdminOverviewPage() {
                       label="Danh mục"
                       value={String(productForm.category_id)}
                       onChange={(value) => setProductForm((prev) => ({ ...prev, category_id: Number(value) }))}
-                      options={categories.map((category) => [String(category.id), category.name])}
+                      options={categories.map((category) => [String(category.id), categoryLabel(category)])}
                     />
                     <FormSelect
                       label="Hãng / Thương hiệu"
@@ -1368,6 +1433,15 @@ export function AdminOverviewPage() {
                     value={productForm.description}
                     onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
                   />
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">Biến thể / màu sắc</label>
+                    <p className="mt-1 text-xs text-stone-400">Mỗi dòng: Tên màu | URL ảnh | tồn kho. Ví dụ: MJ01 | /uploads/mj01.png | 20</p>
+                    <textarea
+                      className="mt-2 min-h-28 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                      value={productForm.variant_options}
+                      onChange={(event) => setProductForm((prev) => ({ ...prev, variant_options: event.target.value }))}
+                    />
+                  </div>
                   <ImageField
                     label="Ảnh sản phẩm"
                     value={productForm.image_url}
@@ -1384,7 +1458,7 @@ export function AdminOverviewPage() {
                     <div className="flex flex-wrap gap-3 mb-4">
                       {(productImages[productForm.id] || []).map((img) => (
                         <div key={img.id} className="relative h-24 w-24 overflow-hidden rounded-xl border border-stone-200">
-                          <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                          <img src={assetUrl(img.image_url)} alt="" className="h-full w-full object-cover" />
                           <button
                             className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
                             onClick={() => void withSaving(async () => {
@@ -1431,6 +1505,7 @@ export function AdminOverviewPage() {
                       <Th>Hãng</Th>
                       <Th>Giá lẻ</Th>
                       <Th>Giá sỉ</Th>
+                      <Th>Biến thể</Th>
                       <Th>Tồn kho</Th>
                       <Th></Th>
                     </tr>
@@ -1438,7 +1513,7 @@ export function AdminOverviewPage() {
                   <tbody>
                     {products.map((product) => (
                       <tr key={product.id} className="border-t border-stone-100">
-                        <Td>{product.image_url ? <img src={product.image_url} alt={product.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{product.image_url ? <img src={assetUrl(product.image_url)} alt={product.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
                         <Td>
                           <div className="font-semibold text-stone-800">{product.name}</div>
                           <div className="text-xs text-stone-500">{product.category?.name}</div>
@@ -1446,6 +1521,7 @@ export function AdminOverviewPage() {
                         <Td>{product.brand?.name || 'Chưa chọn hãng'}</Td>
                         <Td>{currency(product.retail_price)}</Td>
                         <Td>{product.wholesale_price ? currency(product.wholesale_price) : 'Chưa set'}</Td>
+                        <Td>{parseVariantOptions(product.variant_options).length || '-'}</Td>
                         <Td>{product.stock}</Td>
                         <Td>
                           <RowActions
@@ -1459,6 +1535,7 @@ export function AdminOverviewPage() {
                                 brand_id: product.brand_id || 0,
                                 retail_price: product.retail_price,
                                 wholesale_price: product.wholesale_price || 0,
+                                variant_options: variantOptionsToText(product.variant_options),
                                 badge: product.badge || '',
                                 stock: product.stock,
                                 is_active: product.is_active,
@@ -2454,7 +2531,7 @@ export function AdminOverviewPage() {
                     {combos.find((c) => c.id === comboForm.id)?.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 text-sm bg-stone-50 rounded-lg p-3">
                         <div className="w-10 h-10 rounded-lg bg-stone-200 overflow-hidden shrink-0">
-                          {item.product?.image_url ? <img src={item.product.image_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400">TMC</div>}
+                          {item.product?.image_url ? <img src={assetUrl(item.product.image_url)} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400">TMC</div>}
                         </div>
                         <span className="flex-1 font-medium">{item.product?.name ?? `SP #${item.product_id}`} × {item.quantity}</span>
                         <button className="text-red-500 text-xs hover:underline" onClick={async () => {

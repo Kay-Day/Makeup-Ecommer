@@ -13,11 +13,13 @@ export function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(
-    searchParams.get('category') ? Number(searchParams.get('category')) : undefined,
+    searchParams.get('category') && /^\d+$/.test(searchParams.get('category') || '') ? Number(searchParams.get('category')) : undefined,
   );
   const [selectedBrand, setSelectedBrand] = useState<number | undefined>(
     searchParams.get('brand') ? Number(searchParams.get('brand')) : undefined,
   );
+  const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('category');
 
@@ -30,6 +32,8 @@ export function SearchPage() {
             category_id: selectedCategory,
             brand_id: selectedBrand,
             search: search || undefined,
+            min_price: minPrice ? Number(minPrice) : undefined,
+            max_price: maxPrice ? Number(maxPrice) : undefined,
             limit: 100,
           }),
           categoryApi.getAll(),
@@ -47,15 +51,31 @@ export function SearchPage() {
     };
 
     void loadData();
-  }, [selectedCategory, selectedBrand, search]);
+  }, [selectedCategory, selectedBrand, search, minPrice, maxPrice]);
+
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (!categoryParam || /^\d+$/.test(categoryParam)) return;
+    categoryApi.getAll().then((res) => {
+      const found = res.data.find((category) => category.slug === categoryParam);
+      if (found) setSelectedCategory(found.id);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const nextParams = new URLSearchParams();
     if (search) nextParams.set('q', search);
     if (selectedCategory) nextParams.set('category', String(selectedCategory));
     if (selectedBrand) nextParams.set('brand', String(selectedBrand));
+    if (minPrice) nextParams.set('min_price', minPrice);
+    if (maxPrice) nextParams.set('max_price', maxPrice);
     setSearchParams(nextParams, { replace: true });
-  }, [search, selectedCategory, selectedBrand, setSearchParams]);
+    if (search.trim()) {
+      const currentTerms = JSON.parse(localStorage.getItem('tmc_recent_search_terms') || '[]') as string[];
+      const nextTerms = [search.trim(), ...currentTerms.filter((item) => item !== search.trim())].slice(0, 8);
+      localStorage.setItem('tmc_recent_search_terms', JSON.stringify(nextTerms));
+    }
+  }, [search, selectedCategory, selectedBrand, minPrice, maxPrice, setSearchParams]);
 
   const pageTitle = useMemo(() => {
     if (selectedBrand) {
@@ -69,7 +89,26 @@ export function SearchPage() {
     return t('search.title');
   }, [brands, categories, selectedBrand, selectedCategory, t]);
 
-  const activeFiltersCount = (selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0);
+  const activeFiltersCount = (selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0) + (minPrice || maxPrice ? 1 : 0);
+  const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
+  const renderPriceFilter = () => (
+    <div className="border border-stone-200 rounded-xl overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-stone-50 transition"
+        onClick={() => setOpenSection(openSection === 'price' ? null : 'price')}
+      >
+        <span className="font-semibold text-sm text-emerald-900">Khoảng giá</span>
+        <span className={`material-symbols-outlined text-stone-400 text-lg transition-transform duration-300 ${openSection === 'price' ? 'rotate-180' : ''}`}>expand_more</span>
+      </button>
+      <div className={`transition-all duration-300 overflow-hidden ${openSection === 'price' ? 'max-h-48' : 'max-h-0'}`}>
+        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Từ" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} />
+          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Đến" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} />
+          <button className="col-span-2 rounded-lg bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-600 transition hover:bg-stone-200" type="button" onClick={() => { setMinPrice(''); setMaxPrice(''); }}>Xóa khoảng giá</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-surface min-h-screen pb-20">
@@ -140,7 +179,7 @@ export function SearchPage() {
                           className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${selectedCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
                           onClick={() => setSelectedCategory(category.id)}
                         >
-                          {category.name}
+                          {categoryLabel(category)}
                         </button>
                       ))}
                     </div>
@@ -175,6 +214,7 @@ export function SearchPage() {
                     </div>
                   </div>
                 </div>
+                {renderPriceFilter()}
               </div>
             </div>
           </div>
@@ -207,7 +247,7 @@ export function SearchPage() {
                       className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${selectedCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
                       onClick={() => setSelectedCategory(category.id)}
                     >
-                      {category.name}
+                      {categoryLabel(category)}
                     </button>
                   ))}
                 </div>
@@ -244,6 +284,7 @@ export function SearchPage() {
                 </div>
               </div>
             </div>
+            {renderPriceFilter()}
           </aside>
 
           <main className="flex-1 min-w-0">
@@ -289,6 +330,7 @@ export function SearchPage() {
                     imageUrl={product.image_url || ''}
                     badge={product.badge || undefined}
                     discount={product.discount}
+                    stock={product.stock}
                   />
                 ))}
               </div>

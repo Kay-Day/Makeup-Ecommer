@@ -15,21 +15,25 @@ export function ShopAllPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<number | undefined>(
-    searchParams.get('category') ? undefined : undefined
+    searchParams.get('category') && /^\d+$/.test(searchParams.get('category') || '') ? Number(searchParams.get('category')) : undefined
   );
-  const [activeBrand, setActiveBrand] = useState<number | undefined>(undefined);
+  const [activeBrand, setActiveBrand] = useState<number | undefined>(
+    searchParams.get('brand') ? Number(searchParams.get('brand')) : undefined
+  );
   const [search, setSearch] = useState('');
   const [openSection, setOpenSection] = useState<string | null>('category');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<string>('featured');
+  const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
 
   // Read category slug from URL params
   useEffect(() => {
     const categorySlug = searchParams.get('category');
     if (categorySlug) {
       categoryApi.getAll().then(res => {
-        const found = res.data.find(c => c.slug === categorySlug);
+        const found = res.data.find(c => c.slug === categorySlug || String(c.id) === categorySlug);
         if (found) setActiveCategory(found.id);
       }).catch(() => {});
     }
@@ -41,7 +45,16 @@ export function ShopAllPage() {
       try {
         const sortParam = sortBy === 'featured' ? undefined : sortBy === 'newest' ? 'created_at' : sortBy === 'price_asc' ? 'price_asc' : sortBy === 'price_desc' ? 'price_desc' : undefined;
         const [productsResponse, categoriesResponse, brandsResponse] = await Promise.all([
-          productApi.getAll({ category_id: activeCategory, brand_id: activeBrand, search: search || undefined, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE, sort: sortParam }),
+          productApi.getAll({
+            category_id: activeCategory,
+            brand_id: activeBrand,
+            search: search || undefined,
+            min_price: minPrice ? Number(minPrice) : undefined,
+            max_price: maxPrice ? Number(maxPrice) : undefined,
+            limit: PAGE_SIZE,
+            offset: (page - 1) * PAGE_SIZE,
+            sort: sortParam,
+          }),
           categoryApi.getAll(),
           brandApi.getAll(),
         ]);
@@ -56,9 +69,28 @@ export function ShopAllPage() {
     };
 
     void fetchProducts();
-  }, [activeCategory, activeBrand, search, page, sortBy]);
+  }, [activeCategory, activeBrand, search, page, sortBy, minPrice, maxPrice]);
 
-  const activeFiltersCount = (activeCategory ? 1 : 0) + (activeBrand ? 1 : 0);
+  const activeFiltersCount = (activeCategory ? 1 : 0) + (activeBrand ? 1 : 0) + (minPrice || maxPrice ? 1 : 0);
+  const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
+  const renderPriceFilter = () => (
+    <div className="border border-stone-200 rounded-xl overflow-hidden shrink-0 bg-white shadow-sm">
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-stone-50 transition"
+        onClick={() => setOpenSection(openSection === 'price' ? null : 'price')}
+      >
+        <span className="font-semibold text-sm text-emerald-900">Khoảng giá</span>
+        <span className={`material-symbols-outlined text-stone-400 text-lg transition-transform duration-300 ${openSection === 'price' ? 'rotate-180' : ''}`}>expand_more</span>
+      </button>
+      <div className={`transition-all duration-300 overflow-hidden ${openSection === 'price' ? 'max-h-48' : 'max-h-0'}`}>
+        <div className="grid grid-cols-2 gap-2 px-3 pb-3">
+          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Từ" value={minPrice} onChange={(event) => { setMinPrice(event.target.value); setPage(1); }} />
+          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Đến" value={maxPrice} onChange={(event) => { setMaxPrice(event.target.value); setPage(1); }} />
+          <button className="col-span-2 rounded-lg bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-600 transition hover:bg-stone-200" type="button" onClick={() => { setMinPrice(''); setMaxPrice(''); setPage(1); }}>Xóa khoảng giá</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -100,7 +132,7 @@ export function ShopAllPage() {
               className="w-full rounded-xl border border-stone-200 bg-white pl-10 pr-4 py-3 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all text-sm"
               placeholder="Tìm sản phẩm..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             />
           </div>
         </div>
@@ -135,7 +167,7 @@ export function ShopAllPage() {
                     <div className="px-3 pb-3 space-y-1">
                       <button
                         className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => setActiveCategory(undefined)}
+                        onClick={() => { setActiveCategory(undefined); setPage(1); }}
                       >
                         Tất cả sản phẩm
                       </button>
@@ -143,9 +175,9 @@ export function ShopAllPage() {
                         <button
                           key={category.id}
                           className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                          onClick={() => setActiveCategory(category.id)}
+                          onClick={() => { setActiveCategory(category.id); setPage(1); }}
                         >
-                          {category.name}
+                          {categoryLabel(category)}
                         </button>
                       ))}
                     </div>
@@ -167,7 +199,7 @@ export function ShopAllPage() {
                     <div className="px-3 pb-3 space-y-1">
                       <button
                         className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeBrand === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => setActiveBrand(undefined)}
+                        onClick={() => { setActiveBrand(undefined); setPage(1); }}
                       >
                         Tất cả thương hiệu
                       </button>
@@ -175,7 +207,7 @@ export function ShopAllPage() {
                         <button
                           key={brand.id}
                           className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeBrand === brand.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                          onClick={() => setActiveBrand(brand.id)}
+                          onClick={() => { setActiveBrand(brand.id); setPage(1); }}
                         >
                           {brand.name}
                         </button>
@@ -183,6 +215,7 @@ export function ShopAllPage() {
                     </div>
                   </div>
                 </div>
+                {renderPriceFilter()}
               </div>
             </div>
           </div>
@@ -200,7 +233,7 @@ export function ShopAllPage() {
                   className="w-full rounded-xl border border-stone-200 bg-white pl-10 pr-4 py-3 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all text-sm shadow-sm"
                   placeholder="Tìm sản phẩm..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                 />
               </div>
 
@@ -218,7 +251,7 @@ export function ShopAllPage() {
                   <div className="px-3 pb-3 space-y-1">
                     <button
                       className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                      onClick={() => setActiveCategory(undefined)}
+                  onClick={() => { setActiveCategory(undefined); setPage(1); }}
                     >
                       Tất cả sản phẩm
                     </button>
@@ -226,9 +259,9 @@ export function ShopAllPage() {
                       <button
                         key={category.id}
                         className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => setActiveCategory(category.id)}
+                        onClick={() => { setActiveCategory(category.id); setPage(1); }}
                       >
-                        {category.name}
+                        {categoryLabel(category)}
                       </button>
                     ))}
                   </div>
@@ -249,7 +282,7 @@ export function ShopAllPage() {
                   <div className="px-3 pb-3 space-y-1">
                     <button
                       className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeBrand === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                      onClick={() => setActiveBrand(undefined)}
+                  onClick={() => { setActiveBrand(undefined); setPage(1); }}
                     >
                       Tất cả thương hiệu
                     </button>
@@ -257,7 +290,7 @@ export function ShopAllPage() {
                       <button
                         key={brand.id}
                         className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeBrand === brand.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => setActiveBrand(brand.id)}
+                        onClick={() => { setActiveBrand(brand.id); setPage(1); }}
                       >
                         {brand.name}
                       </button>
@@ -265,6 +298,7 @@ export function ShopAllPage() {
                   </div>
                 </div>
               </div>
+              {renderPriceFilter()}
             </div>
           </aside>
 
@@ -313,6 +347,7 @@ export function ShopAllPage() {
                     badge={product.badge || undefined}
                     showQuickAdd={true}
                     discount={product.discount}
+                    stock={product.stock}
                   />
                 ))}
               </div>
