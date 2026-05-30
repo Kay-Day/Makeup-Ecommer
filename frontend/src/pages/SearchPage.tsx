@@ -59,7 +59,7 @@ export function SearchPage() {
     categoryApi.getAll().then((res) => {
       const found = res.data.find((category) => category.slug === categoryParam);
       if (found) setSelectedCategory(found.id);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -90,7 +90,50 @@ export function SearchPage() {
   }, [brands, categories, selectedBrand, selectedCategory, t]);
 
   const activeFiltersCount = (selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0) + (minPrice || maxPrice ? 1 : 0);
-  const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
+  const groupedCategories = useMemo(() => {
+    const parents = categories.filter((category) => !category.parent_id);
+    const childrenByParent = categories.reduce<Record<number, Category[]>>((acc, category) => {
+      if (category.parent_id) {
+        acc[category.parent_id] = [...(acc[category.parent_id] || []), category];
+      }
+      return acc;
+    }, {});
+    const parentIds = new Set(parents.map((category) => category.id));
+    const orphanChildren = categories.filter((category) => category.parent_id && !parentIds.has(category.parent_id));
+    return { parents, childrenByParent, orphanChildren };
+  }, [categories]);
+  const renderCategoryButton = (category: Category, child = false) => (
+    <button
+      key={category.id}
+      className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${selectedCategory === category.id
+          ? 'bg-emerald-100 text-emerald-900'
+          : child
+            ? 'text-stone-500 hover:bg-stone-100 hover:text-emerald-800'
+            : 'text-stone-700 hover:bg-stone-100'
+        } ${child ? 'pl-7' : ''}`}
+      onClick={() => setSelectedCategory(category.id)}
+    >
+      <span className="flex items-center gap-2">
+        {child ? <span className="h-px w-3 bg-stone-300" /> : null}
+        {category.name}
+      </span>
+    </button>
+  );
+  const renderCategoryTree = () => (
+    <>
+      {groupedCategories.parents.map((category) => (
+        <div key={category.id} className="space-y-1">
+          {renderCategoryButton(category)}
+          {groupedCategories.childrenByParent[category.id]?.map((child) => renderCategoryButton(child, true))}
+        </div>
+      ))}
+      {groupedCategories.orphanChildren.length > 0 ? (
+        <div className="border-t border-stone-100 pt-2">
+          {groupedCategories.orphanChildren.map((category) => renderCategoryButton(category))}
+        </div>
+      ) : null}
+    </>
+  );
   const renderPriceFilter = () => (
     <div className="border border-stone-200 rounded-xl overflow-hidden">
       <button
@@ -173,15 +216,7 @@ export function SearchPage() {
                       >
                         Tất cả danh mục
                       </button>
-                      {categories.map((category) => (
-                        <button
-                          key={category.id}
-                          className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${selectedCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                          onClick={() => setSelectedCategory(category.id)}
-                        >
-                          {categoryLabel(category)}
-                        </button>
-                      ))}
+                      {renderCategoryTree()}
                     </div>
                   </div>
                 </div>
@@ -241,15 +276,7 @@ export function SearchPage() {
                   >
                     Tất cả danh mục
                   </button>
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${selectedCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                      onClick={() => setSelectedCategory(category.id)}
-                    >
-                      {categoryLabel(category)}
-                    </button>
-                  ))}
+                  {renderCategoryTree()}
                 </div>
               </div>
             </div>

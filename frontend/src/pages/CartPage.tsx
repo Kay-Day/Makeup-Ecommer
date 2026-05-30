@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cartStorage, type CartItem } from '../services/cart';
+import { productApi, type WholesaleTier } from '../services/api';
 
 function currency(value: number) {
   return `${value.toLocaleString('vi-VN')}đ`;
@@ -14,15 +15,54 @@ function comboUnitPrice(item: CartItem): number {
   return item.product.retail_price;
 }
 
+function cartUnitPrice(item: CartItem, wholesaleTier: WholesaleTier | null): number {
+  const basePrice = wholesaleTier && item.product.wholesale_price
+    ? item.product.wholesale_price
+    : item.product.retail_price;
+  const comboPrice = item.combo_discount_percent
+    ? basePrice * (1 - item.combo_discount_percent / 100)
+    : basePrice;
+  const tierPrice = wholesaleTier?.discount_percent
+    ? comboPrice * (1 - wholesaleTier.discount_percent / 100)
+    : comboPrice;
+  return Math.round(tierPrice);
+}
+
 export function CartPage() {
   const { t } = useTranslation();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [wholesaleTiers, setWholesaleTiers] = useState<WholesaleTier[]>([]);
   const [promoCode, setPromoCode] = useState('');
 
   useEffect(() => {
     setItems(cartStorage.getItems());
     return cartStorage.subscribe(setItems);
   }, []);
+
+  useEffect(() => {
+    productApi.getWholesaleTiers().then((response) => setWholesaleTiers(response.data)).catch(() => setWholesaleTiers([]));
+  }, []);
+
+  useEffect(() => {
+    const staleItems = items.filter((item) => item.product.wholesale_price === undefined);
+    if (!staleItems.length) return;
+
+    let cancelled = false;
+    const refreshProducts = async () => {
+      const products = await Promise.all(
+        staleItems.map((item) => productApi.getById(item.product_id).then((response) => response.data).catch(() => null)),
+      );
+      if (cancelled) return;
+      products.forEach((product) => {
+        if (product) cartStorage.updateProduct(product);
+      });
+    };
+
+    void refreshProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   const { comboGroups, standaloneItems } = useMemo(() => {
     const comboMap = new Map<number, CartItem[]>();
@@ -39,16 +79,26 @@ export function CartPage() {
     return { comboGroups: Array.from(comboMap.entries()), standaloneItems: standalone };
   }, [items]);
 
-  const subtotal = useMemo(() => {
+  const retailSubtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + comboUnitPrice(item) * item.quantity, 0);
   }, [items]);
+  const activeWholesaleTier = useMemo(() => {
+    return wholesaleTiers.find((tier) => (
+      tier.is_active &&
+      retailSubtotal >= tier.min_order_total &&
+      (tier.max_order_total == null || retailSubtotal <= tier.max_order_total)
+    )) || null;
+  }, [retailSubtotal, wholesaleTiers]);
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + cartUnitPrice(item, activeWholesaleTier) * item.quantity, 0);
+  }, [activeWholesaleTier, items]);
 
-  const updateQuantity = (productId: number, delta: number) => {
-    const item = items.find((entry) => entry.product_id === productId);
+  const updateQuantity = (productId: number, delta: number, variantCode?: string | null) => {
+    const item = items.find((entry) => entry.product_id === productId && (entry.variant_code || null) === (variantCode || null));
     if (!item) return;
     const maxStock = item.product.stock ?? Number.MAX_SAFE_INTEGER;
     const nextQuantity = Math.max(1, Math.min(item.quantity + delta, maxStock));
-    cartStorage.updateQuantity(productId, nextQuantity);
+    cartStorage.updateQuantity(productId, nextQuantity, variantCode);
   };
 
   const tax = subtotal * 0.08;
@@ -77,7 +127,7 @@ export function CartPage() {
             {comboGroups.map(([comboId, comboItems]) => {
               const comboDiscount = comboItems[0]?.combo_discount_percent ?? 0;
               const comboOriginal = comboItems.reduce((s, i) => s + i.product.retail_price * i.quantity, 0);
-              const comboDiscounted = comboItems.reduce((s, i) => s + comboUnitPrice(i) * i.quantity, 0);
+              const comboDiscounted = comboItems.reduce((s, i) => s + cartUnitPrice(i, activeWholesaleTier) * i.quantity, 0);
               return (
                 <div key={`combo-${comboId}`} className="bg-amber-50/50 border border-amber-200 rounded-2xl overflow-hidden">
                   <div className="bg-amber-100/70 px-6 py-3 flex items-center justify-between">
@@ -97,6 +147,7 @@ export function CartPage() {
                       <CartItemRow
                         key={item.product_id}
                         item={item}
+                        wholesaleTier={activeWholesaleTier}
                         updateQuantity={updateQuantity}
                         showComboPrice={true}
                       />
@@ -118,6 +169,7 @@ export function CartPage() {
               <CartItemRow
                 key={item.product_id}
                 item={item}
+                wholesaleTier={activeWholesaleTier}
                 updateQuantity={updateQuantity}
                 showComboPrice={false}
               />
@@ -139,6 +191,11 @@ export function CartPage() {
                   <span>{t('cart.subtotal')}</span>
                   <span className="text-on-surface font-semibold">{currency(subtotal)}</span>
                 </div>
+                {activeWholesaleTier ? (
+                  <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                    Đã áp dụng {activeWholesaleTier.name} - giảm {activeWholesaleTier.discount_percent}% theo tổng đơn {currency(retailSubtotal)}
+                  </div>
+                ) : null}
                 <div className="flex justify-between font-body-md text-on-surface-variant">
                   <span>{t('cart.tax')}</span>
                   <span className="text-on-surface font-semibold">{currency(tax)}</span>
@@ -195,16 +252,19 @@ export function CartPage() {
 
 function CartItemRow({
   item,
+  wholesaleTier,
   updateQuantity,
   showComboPrice,
 }: {
   item: CartItem;
-  updateQuantity: (productId: number, delta: number) => void;
+  wholesaleTier: WholesaleTier | null;
+  updateQuantity: (productId: number, delta: number, variantCode?: string | null) => void;
   showComboPrice: boolean;
 }) {
   const { t } = useTranslation();
-  const unitPrice = comboUnitPrice(item);
+  const unitPrice = cartUnitPrice(item, wholesaleTier);
   const hasComboDiscount = showComboPrice && item.combo_discount_percent;
+  const hasWholesalePrice = Boolean(wholesaleTier && item.product.wholesale_price);
   const lineTotal = unitPrice * item.quantity;
   const stock = item.product.stock;
   const isOutOfStock = stock === 0;
@@ -239,13 +299,20 @@ function CartItemRow({
         </div>
         <h3 className="font-h3 text-xl font-bold text-on-surface">{item.product.name}</h3>
         <p className="font-body-md text-on-surface-variant">
-          {item.product.brand_name || 'TMC'}
+          {item.product.brand_name || 'TMC'}{item.variant_code ? ` • Mã ${item.variant_code}` : ''}
           {hasComboDiscount ? (
             <>
               {' • '}
               <span className="text-stone-400 line-through">{currency(item.product.retail_price)}</span>
               {' '}
               <span className="text-red-600 font-semibold">{currency(unitPrice)}</span>
+            </>
+          ) : hasWholesalePrice ? (
+            <>
+              {' • '}
+              <span className="text-stone-400 line-through">{currency(item.product.retail_price)}</span>
+              {' '}
+              <span className="text-emerald-700 font-semibold">{currency(unitPrice)}</span>
             </>
           ) : (
             ` • ${t('cart.retail_price', { price: currency(item.product.retail_price) })}`
@@ -254,12 +321,12 @@ function CartItemRow({
       </div>
       <div className="flex flex-col items-center md:items-end gap-4">
         <div className="flex items-center border border-outline-variant rounded-full p-1 bg-surface-container-low">
-          <button onClick={() => updateQuantity(item.product_id, -1)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary-fixed rounded-full transition-colors">
+          <button onClick={() => updateQuantity(item.product_id, -1, item.variant_code)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary-fixed rounded-full transition-colors">
             <span className="material-symbols-outlined text-sm">remove</span>
           </button>
           <span className="px-4 font-body-md font-bold">{item.quantity}</span>
           <button
-            onClick={() => updateQuantity(item.product_id, 1)}
+            onClick={() => updateQuantity(item.product_id, 1, item.variant_code)}
             disabled={atStockLimit || isOutOfStock}
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
               atStockLimit || isOutOfStock ? 'text-stone-300 cursor-not-allowed' : 'hover:bg-secondary-fixed'
@@ -270,7 +337,7 @@ function CartItemRow({
         </div>
         <div className="flex items-center gap-4">
           <span className="font-h3 text-xl font-bold text-primary">{currency(lineTotal)}</span>
-          <button onClick={() => cartStorage.removeItem(item.product_id)} className="text-on-surface-variant hover:text-error transition-colors">
+          <button onClick={() => cartStorage.removeItem(item.product_id, item.variant_code)} className="text-on-surface-variant hover:text-error transition-colors">
             <span className="material-symbols-outlined">delete</span>
           </button>
         </div>

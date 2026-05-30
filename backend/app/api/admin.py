@@ -2,7 +2,6 @@ from collections import defaultdict
 from datetime import datetime
 import csv
 import io
-import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -31,6 +30,7 @@ from app.models.wholesale_tier import WholesaleTier
 from app.models.sepay_webhook_log import SePayWebhookLog
 from app.services.notifications import create_notification
 from app.services.pricing import enrich_order_pricing, enrich_orders_pricing, get_pricing_rule_display
+from app.utils.slug import normalize_slug
 from app.schemas import (
     BannerCreate,
     BannerOut,
@@ -91,10 +91,6 @@ STATUS_LABELS = {
     "delivered": "Đã giao",
     "cancelled": "Đã huỷ",
 }
-
-
-def normalize_slug(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 
 def validate_discount_type(discount_type: str) -> None:
@@ -968,6 +964,11 @@ def create_blog_article(
         slug=slug,
         content=data.content,
         image_url=data.image_url,
+        focus_keyword=data.focus_keyword,
+        seo_title=data.seo_title,
+        seo_description=data.seo_description,
+        canonical_url=data.canonical_url,
+        og_image_url=data.og_image_url,
         author_id=admin.id,
         category_id=data.category_id,
         is_published=data.is_published,

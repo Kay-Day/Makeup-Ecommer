@@ -197,6 +197,7 @@ class ProductDiscountUpdate(BaseModel):
 
 class ProductOut(BaseModel):
     id: int
+    product_code: Optional[str] = None
     name: str
     description: Optional[str]
     image_url: Optional[str]
@@ -218,6 +219,7 @@ class ProductOut(BaseModel):
         from_attributes = True
 
 class ProductCreate(BaseModel):
+    product_code: Optional[str] = None
     name: str
     description: Optional[str] = None
     image_url: Optional[str] = None
@@ -231,6 +233,7 @@ class ProductCreate(BaseModel):
     is_active: bool = True
 
 class ProductUpdate(BaseModel):
+    product_code: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
@@ -280,6 +283,7 @@ class OrderItemCreate(BaseModel):
     product_id: int
     quantity: int
     combo_id: Optional[int] = None
+    variant_code: Optional[str] = None
 
 class OrderCreate(BaseModel):
     items: list[OrderItemCreate]
@@ -292,6 +296,40 @@ class OrderCreate(BaseModel):
     payment_method: str = "cod"
 
 
+class OrderQuoteCreate(BaseModel):
+    items: list[OrderItemCreate]
+    discount_code: Optional[str] = None
+
+
+class OrderQuoteItemOut(BaseModel):
+    product_id: int
+    variant_code: Optional[str] = None
+    variant_name: Optional[str] = None
+    quantity: int
+    unit_price: float
+    line_total: float
+    retail_unit_price: float
+    base_unit_price: float
+    combo_id: Optional[int] = None
+    combo_discount_percent: Optional[float] = None
+
+
+class OrderQuoteOut(BaseModel):
+    total_amount: float
+    applied_price_type: str
+    pricing_label: str
+    pricing_rule_name: str
+    pricing_discount_percent: float
+    subtotal_before_discount: float
+    item_subtotal: float
+    pricing_discount_amount: float
+    discount_code_amount: float
+    total_discount_amount: float
+    shipping_fee: float
+    subtotal_after_discount: float
+    items: list[OrderQuoteItemOut]
+
+
 class CheckoutSettingsOut(BaseModel):
     default_shipping_fee: float
     payment_methods: list[str] = ["cod", "sepay"]
@@ -299,6 +337,8 @@ class CheckoutSettingsOut(BaseModel):
 class OrderItemOut(BaseModel):
     id: int
     product_id: int
+    variant_code: Optional[str] = None
+    variant_name: Optional[str] = None
     quantity: int
     unit_price: float
     combo_id: Optional[int] = None
@@ -508,8 +548,14 @@ class BlogCategoryOut(BaseModel):
 class BlogArticleCreate(BaseModel):
     title: str
     slug: str
+    public_slug: Optional[str] = None
     content: str
     image_url: Optional[str] = None
+    focus_keyword: Optional[str] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    canonical_url: Optional[str] = None
+    og_image_url: Optional[str] = None
     category_id: int
     is_published: bool = False
 
@@ -518,6 +564,11 @@ class BlogArticleUpdate(BaseModel):
     slug: Optional[str] = None
     content: Optional[str] = None
     image_url: Optional[str] = None
+    focus_keyword: Optional[str] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    canonical_url: Optional[str] = None
+    og_image_url: Optional[str] = None
     category_id: Optional[int] = None
     is_published: Optional[bool] = None
 
@@ -527,6 +578,11 @@ class BlogArticleOut(BaseModel):
     slug: str
     content: str
     image_url: Optional[str]
+    focus_keyword: Optional[str] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    canonical_url: Optional[str] = None
+    og_image_url: Optional[str] = None
     author_id: int
     category_id: int
     is_published: bool

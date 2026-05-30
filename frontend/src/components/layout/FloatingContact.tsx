@@ -9,6 +9,7 @@ export function FloatingContact() {
       {/* Phone Icon */}
       <a
         href="tel:0766669266"
+        aria-label="Gọi TMC"
         className="w-14 h-14 bg-[#4CAF50] rounded-full shadow-[0_10px_30px_rgba(76,175,80,0.4)] flex items-center justify-center hover:scale-110 transition-transform relative group animate-float"
         style={{ animationDuration: '3s' }}
       >
@@ -24,6 +25,7 @@ export function FloatingContact() {
         href="https://zalo.me/0393409881"
         target="_blank"
         rel="noopener noreferrer"
+        aria-label="Chat Zalo với TMC"
         className="w-14 h-14 bg-white rounded-full shadow-[0_10px_30px_rgba(0,132,255,0.3)] flex items-center justify-center hover:scale-110 transition-transform relative group animate-float"
         style={{ animationDuration: '3.5s' }}
       >

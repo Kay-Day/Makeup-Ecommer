@@ -10,6 +10,8 @@ class OrderItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Float, nullable=False)
+    variant_code = Column(String(100), nullable=True)
+    variant_name = Column(String(255), nullable=True)
     combo_id = Column(Integer, ForeignKey("combos.id"), nullable=True)
     combo_discount_percent = Column(Integer, nullable=True)
 

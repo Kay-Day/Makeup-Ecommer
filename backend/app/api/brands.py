@@ -8,4 +8,4 @@ router = APIRouter(prefix="/brands", tags=["Brands"])
 
 @router.get("", response_model=list[BrandOut])
 def list_brands(db: Session = Depends(get_db)):
-    return db.query(Brand).all()
+    return db.query(Brand).order_by(Brand.name.asc()).all()

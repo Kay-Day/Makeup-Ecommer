@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { authStorage, orderApi, paymentApi, type CheckoutSettings, type Order, type SePayPaymentStatus, type UserOut } from '../services/api';
+import { authStorage, orderApi, paymentApi, type CheckoutSettings, type Order, type OrderQuote, type SePayPaymentStatus, type UserOut } from '../services/api';
 import { cartStorage, type CartItem } from '../services/cart';
 
 function currency(value: number) {
@@ -20,13 +20,34 @@ function splitFullName(fullName: string | undefined) {
 
 const SEPAY_PAYMENT_WINDOW_MS = 5 * 60 * 1000;
 
+function upsertMeta(selector: string, attributes: Record<string, string>) {
+  let element = document.querySelector<HTMLMetaElement>(selector);
+  if (!element) {
+    element = document.createElement('meta');
+    document.head.appendChild(element);
+  }
+  Object.entries(attributes).forEach(([key, value]) => element?.setAttribute(key, value));
+}
+
+function upsertLink(selector: string, attributes: Record<string, string>) {
+  let element = document.querySelector<HTMLLinkElement>(selector);
+  if (!element) {
+    element = document.createElement('link');
+    document.head.appendChild(element);
+  }
+  Object.entries(attributes).forEach(([key, value]) => element?.setAttribute(key, value));
+}
+
 export function CheckoutPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentUser] = useState<UserOut | null>(() => authStorage.getUser());
   const [items, setItems] = useState<CartItem[]>([]);
   const [settings, setSettings] = useState<CheckoutSettings | null>(null);
+  const [checkoutQuote, setCheckoutQuote] = useState<OrderQuote | null>(null);
   const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscountCode, setAppliedDiscountCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +64,28 @@ export function CheckoutPage() {
     postalCode: '',
     paymentMethod: 'cod' as 'cod' | 'sepay',
   });
+
+  useEffect(() => {
+    document.title = 'Thanh toán an toàn | TMC Beauty';
+    upsertMeta('meta[name="description"]', {
+      name: 'description',
+      content: 'Hoàn tất đơn hàng mỹ phẩm TMC với giá sỉ tự động, giao hàng rõ ràng và thanh toán COD hoặc SePay QR.',
+    });
+    upsertMeta('meta[name="robots"]', { name: 'robots', content: 'noindex,nofollow' });
+    upsertMeta('meta[property="og:title"]', { property: 'og:title', content: 'Thanh toán an toàn | TMC Beauty' });
+    upsertMeta('meta[property="og:description"]', {
+      property: 'og:description',
+      content: 'Trang thanh toán bảo mật cho đơn hàng mỹ phẩm TMC.',
+    });
+    upsertLink('link[rel="canonical"]', { rel: 'canonical', href: `${window.location.origin}/checkout` });
+  }, []);
+
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code')?.trim().toUpperCase();
+    if (!codeFromUrl) return;
+    setDiscountCode(codeFromUrl);
+    setAppliedDiscountCode(codeFromUrl);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -77,9 +120,27 @@ export function CheckoutPage() {
   );
   const shipping = settings?.default_shipping_fee ?? 30000;
   const total = subtotal + shipping;
-  const summaryShipping = pendingPayment ? pendingPayment.shipping_fee ?? 0 : shipping;
-  const summaryTotal = pendingPayment ? pendingPayment.total_amount : total;
-  const summarySubtotal = pendingPayment ? Math.max(0, summaryTotal - summaryShipping) : subtotal;
+  const quoteLineByProductId = useMemo(() => {
+    return new Map((checkoutQuote?.items || []).map((line) => [`${line.product_id}:${line.variant_code || ''}`, line]));
+  }, [checkoutQuote]);
+  const summaryShipping = pendingPayment ? pendingPayment.shipping_fee ?? 0 : checkoutQuote?.shipping_fee ?? shipping;
+  const summaryTotal = pendingPayment ? pendingPayment.total_amount : checkoutQuote?.total_amount ?? total;
+  const summarySubtotal = pendingPayment
+    ? Math.max(0, summaryTotal - summaryShipping)
+    : checkoutQuote?.subtotal_after_discount ?? subtotal;
+  const summaryBeforeDiscount = pendingPayment
+    ? pendingPayment.subtotal_before_discount ?? summarySubtotal
+    : checkoutQuote?.subtotal_before_discount ?? subtotal;
+  const pricingDiscount = pendingPayment
+    ? pendingPayment.pricing_discount_amount ?? 0
+    : checkoutQuote?.pricing_discount_amount ?? 0;
+  const discountCodeAmount = pendingPayment
+    ? pendingPayment.discount_code_amount ?? 0
+    : checkoutQuote?.discount_code_amount ?? 0;
+  const totalDiscount = pendingPayment
+    ? pendingPayment.total_discount_amount ?? 0
+    : checkoutQuote?.total_discount_amount ?? 0;
+  const pricingLabel = pendingPayment?.pricing_label || checkoutQuote?.pricing_label || 'Giá bán lẻ';
   const summaryItemCount = pendingPayment
     ? pendingPayment.items.reduce((count, item) => count + item.quantity, 0)
     : items.reduce((count, item) => count + item.quantity, 0);
@@ -95,6 +156,40 @@ export function CheckoutPage() {
   const updateForm = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    if (!currentUser || pendingPayment || !items.length) {
+      setCheckoutQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadQuote = async () => {
+      try {
+        const response = await orderApi.quote({
+          items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, combo_id: item.combo_id, variant_code: item.variant_code || undefined })),
+          discount_code: appliedDiscountCode || undefined,
+        });
+        if (!cancelled) {
+          setCheckoutQuote(response.data);
+          if (appliedDiscountCode) setError(null);
+        }
+      } catch (quoteError) {
+        console.error('Failed to load checkout quote', quoteError);
+        if (!cancelled) {
+          setCheckoutQuote(null);
+          if (appliedDiscountCode) {
+            setError('Mã giảm giá không hợp lệ hoặc đơn hàng chưa đạt điều kiện áp dụng.');
+          }
+        }
+      }
+    };
+
+    void loadQuote();
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedDiscountCode, currentUser, items, pendingPayment]);
 
   useEffect(() => {
     if (!pendingPayment || pendingPayment.payment_method !== 'sepay') return;
@@ -168,8 +263,8 @@ export function CheckoutPage() {
     setMessage(null);
     try {
       const response = await orderApi.create({
-        items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, combo_id: item.combo_id })),
-        discount_code: discountCode.trim() || undefined,
+        items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, combo_id: item.combo_id, variant_code: item.variant_code || undefined })),
+        discount_code: appliedDiscountCode || discountCode.trim() || undefined,
         shipping_full_name: shippingFullName,
         shipping_phone: form.phone.trim(),
         shipping_address: form.address.trim(),
@@ -192,6 +287,12 @@ export function CheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const applyDiscountCode = () => {
+    const nextCode = discountCode.trim().toUpperCase();
+    setDiscountCode(nextCode);
+    setAppliedDiscountCode(nextCode);
   };
 
   if (!currentUser) {
@@ -231,58 +332,44 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-[1440px] px-4 pb-24 pt-8 sm:px-6 md:px-10 xl:px-16">
-      <div className="mb-10">
-        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.section_label')}</p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">{t('checkout.page_title')}</h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-stone-500">{t('checkout.page_desc')}</p>
-      </div>
+    <main className="min-h-screen bg-[#f7faf8]">
+      <div className="mx-auto max-w-[1320px] px-4 pb-24 pt-8 sm:px-6 lg:px-10">
+        <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
+          <Link to="/" className="font-medium transition hover:text-emerald-800">Trang chủ</Link>
+          <span>/</span>
+          <Link to="/cart" className="font-medium transition hover:text-emerald-800">Giỏ hàng</Link>
+          <span>/</span>
+          <span className="font-semibold text-stone-900">Thanh toán</span>
+        </nav>
 
-      <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-12 xl:gap-12">
-        <div className="space-y-8 xl:col-span-7">
-          <div className="rounded-[1.8rem] border border-sky-100 bg-[linear-gradient(135deg,#f6fbff_0%,#ffffff_55%,#eef7ff_100%)] p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white">1</span>
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">{t('checkout.step_shipping')}</span>
-              </div>
-              <div className="h-px min-w-[2.5rem] flex-1 bg-sky-100" />
-              <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white">2</span>
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">{t('checkout.step_payment')}</span>
-              </div>
-              <div className="h-px min-w-[2.5rem] flex-1 bg-sky-100" />
-              <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white">3</span>
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">{t('checkout.step_review')}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.summary_items')}</p>
-                <div className="mt-2 text-2xl font-bold text-slate-900">{summaryItemCount}</div>
-              </div>
-              <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.shipping')}</p>
-                <div className="mt-2 text-2xl font-bold text-slate-900">{currency(summaryShipping)}</div>
-              </div>
-              <div className="rounded-2xl bg-white/90 p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">{t('checkout.total')}</p>
-                <div className="mt-2 text-2xl font-bold text-sky-800">{currency(summaryTotal)}</div>
-              </div>
-            </div>
+        <header className="mb-8 grid gap-6 border-b border-emerald-100 pb-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">{t('checkout.section_label')}</p>
+            <h1 className="mt-3 text-3xl font-bold leading-tight text-stone-950 sm:text-4xl">
+              Thanh toán gọn gàng, rõ từng khoản
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600">
+              Giá sỉ, combo và mã giảm giá được kiểm tra lại từ hệ thống trước khi tạo đơn. Bạn chỉ cần xác nhận thông tin nhận hàng và chọn hình thức thanh toán.
+            </p>
           </div>
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-emerald-100 bg-white p-2 shadow-sm">
+            <CheckoutStep active label={t('checkout.step_shipping')} number="1" />
+            <CheckoutStep active label={t('checkout.step_payment')} number="2" />
+            <CheckoutStep active label={t('checkout.step_review')} number="3" />
+          </div>
+        </header>
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
-            <section className="rounded-[1.8rem] border border-sky-100 bg-white p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
+        <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_430px]">
+          <div className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-8 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.step_label', { count: 1 })}</p>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">{t('checkout.shipping_title')}</h2>
-                  <p className="mt-2 text-sm leading-7 text-stone-500">{t('checkout.shipping_desc')}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('checkout.step_label', { count: 1 })}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-stone-950">{t('checkout.shipping_title')}</h2>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{t('checkout.shipping_desc')}</p>
                 </div>
-                <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 sm:flex">
+                <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 sm:flex">
                   <span className="material-symbols-outlined">local_shipping</span>
                 </div>
               </div>
@@ -331,14 +418,14 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.8rem] border border-sky-100 bg-white p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
+            <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.step_label', { count: 2 })}</p>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900">{t('checkout.payment_title')}</h2>
-                  <p className="mt-2 text-sm leading-7 text-stone-500">{t('checkout.payment_desc')}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('checkout.step_label', { count: 2 })}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-stone-950">{t('checkout.payment_title')}</h2>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{t('checkout.payment_desc')}</p>
                 </div>
-                <span className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
+                <span className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">
                   {form.paymentMethod === 'sepay' ? 'SePay' : 'COD'}
                 </span>
               </div>
@@ -361,27 +448,38 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.8rem] border border-sky-100 bg-white p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
+            <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.step_label', { count: 3 })}</p>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900">{t('checkout.review_title')}</h2>
-                  <p className="mt-2 text-sm leading-7 text-stone-500">{t('checkout.review_desc')}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('checkout.step_label', { count: 3 })}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-stone-950">{t('checkout.review_title')}</h2>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{t('checkout.review_desc')}</p>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[1.5rem] border border-stone-100 bg-slate-50 p-5">
-                <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">
+              <div className="mt-6 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <label className="mb-3 block text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
                   {t('checkout.promo_label')}
                 </label>
-                <input
-                  className="w-full rounded-2xl border border-stone-200 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                  placeholder={t('checkout.promo_placeholder')}
-                  type="text"
-                  value={discountCode}
-                  onChange={(event) => setDiscountCode(event.target.value)}
-                />
-                <p className="mt-3 text-sm text-stone-500">{t('checkout.promo_help')}</p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    placeholder={t('checkout.promo_placeholder')}
+                    type="text"
+                    value={discountCode}
+                    onChange={(event) => setDiscountCode(event.target.value)}
+                  />
+                  <button
+                    className="rounded-lg bg-stone-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-900"
+                    onClick={applyDiscountCode}
+                    type="button"
+                  >
+                    {t('checkout.apply')}
+                  </button>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-stone-500">
+                  {appliedDiscountCode ? `Đang kiểm tra mã ${appliedDiscountCode} trong tổng đơn.` : t('checkout.promo_help')}
+                </p>
               </div>
 
               {message ? (
@@ -407,22 +505,23 @@ export function CheckoutPage() {
           </form>
         </div>
 
-        <aside className="xl:col-span-5 xl:sticky xl:top-28">
-          <div className="space-y-6 rounded-[1.8rem] border border-sky-100 bg-white p-6 shadow-[0_22px_60px_rgba(24,58,92,0.08)] sm:p-8">
+        <aside className="xl:sticky xl:top-24">
+          <div className="space-y-6 rounded-xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-sky-600">{t('checkout.summary_label')}</p>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">{t('checkout.order_summary')}</h3>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('checkout.summary_label')}</p>
+                <h2 className="mt-2 text-2xl font-bold text-stone-950">{t('checkout.order_summary')}</h2>
+                <p className="mt-1 text-sm text-stone-500">{t('checkout.items_count', { count: summaryItemCount })}</p>
               </div>
-              <span className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
-                {t('checkout.items_count', { count: summaryItemCount })}
+              <span className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">
+                {pricingLabel}
               </span>
             </div>
 
-            <div className="space-y-6">
+            <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
               {pendingPayment ? pendingPayment.items.map((item) => (
-                <div key={item.id} className="flex gap-4 rounded-[1.4rem] border border-slate-100 bg-slate-50/70 p-4">
-                  <div className="h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div key={item.id} className="flex gap-3 rounded-lg border border-stone-100 bg-stone-50/70 p-3">
+                  <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-white shadow-sm">
                     {item.product?.image_url ? (
                       <img className="h-full w-full object-cover" alt={item.product.name} src={item.product.image_url} />
                     ) : (
@@ -440,15 +539,15 @@ export function CheckoutPage() {
                       <span className="text-sm font-medium text-stone-500">
                         {t('checkout.quantity_label', { count: item.quantity })}
                       </span>
-                      <span className="text-base font-bold text-sky-800">
+                      <span className="text-base font-bold text-emerald-800">
                         {currency(item.unit_price * item.quantity)}
                       </span>
                     </div>
                   </div>
                 </div>
               )) : items.map((item) => (
-                <div key={item.product_id} className="flex gap-4 rounded-[1.4rem] border border-slate-100 bg-slate-50/70 p-4">
-                  <div className="h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div key={item.product_id} className="flex gap-3 rounded-lg border border-stone-100 bg-stone-50/70 p-3">
+                  <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-white shadow-sm">
                     {item.product.image_url ? (
                       <img className="h-full w-full object-cover" alt={item.product.name} src={item.product.image_url} />
                     ) : (
@@ -459,7 +558,7 @@ export function CheckoutPage() {
                     <div>
                       <h4 className="text-base font-bold text-slate-900">{item.product.name}</h4>
                       <p className="mt-1 text-sm text-stone-500">
-                        {[item.product.brand_name, item.product.category_name].filter(Boolean).join(' • ') || t('product.not_available')}
+                        {[item.product.brand_name, item.product.category_name, item.variant_code ? `Mã ${item.variant_code}` : null].filter(Boolean).join(' • ') || t('product.not_available')}
                         {item.combo_discount_percent && (
                           <span className="ml-2 inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
                             <span className="material-symbols-outlined text-xs">card_giftcard</span>
@@ -472,8 +571,9 @@ export function CheckoutPage() {
                       <span className="text-sm font-medium text-stone-500">
                         {t('checkout.quantity_label', { count: item.quantity })}
                       </span>
-                      <span className="text-base font-bold text-sky-800">
+                      <span className="text-base font-bold text-emerald-800">
                         {currency(
+                          quoteLineByProductId.get(`${item.product_id}:${item.variant_code || ''}`)?.line_total ??
                           (item.combo_discount_percent
                             ? item.product.retail_price * (1 - item.combo_discount_percent / 100)
                             : item.product.retail_price) * item.quantity
@@ -485,23 +585,21 @@ export function CheckoutPage() {
               ))}
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-stone-500">{t('checkout.subtotal')}</span>
-                <span className="font-semibold text-slate-900">{currency(summarySubtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-stone-500">{t('checkout.shipping')}</span>
-                <span className="font-semibold text-slate-900">{currency(summaryShipping)}</span>
-              </div>
-              <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
-                <span className="text-xl font-bold text-slate-900">{t('checkout.total')}</span>
-                <span className="text-3xl font-bold text-sky-800">{currency(summaryTotal)}</span>
+            <div className="space-y-3 rounded-xl bg-stone-50 p-4">
+              <SummaryRow label="Giá hàng trước ưu đãi" value={currency(summaryBeforeDiscount)} />
+              {pricingDiscount > 0 ? <SummaryRow label="Ưu đãi giá sỉ/combo" value={`-${currency(pricingDiscount)}`} highlight /> : null}
+              {discountCodeAmount > 0 ? <SummaryRow label="Mã giảm giá" value={`-${currency(discountCodeAmount)}`} highlight /> : null}
+              {totalDiscount > 0 ? <SummaryRow label="Tổng tiết kiệm" value={`-${currency(totalDiscount)}`} highlight /> : null}
+              <SummaryRow label={t('checkout.subtotal')} value={currency(summarySubtotal)} />
+              <SummaryRow label={t('checkout.shipping')} value={currency(summaryShipping)} />
+              <div className="mt-4 flex items-end justify-between border-t border-stone-200 pt-4">
+                <span className="text-lg font-bold text-stone-950">{t('checkout.total')}</span>
+                <span className="text-3xl font-bold text-emerald-800">{currency(summaryTotal)}</span>
               </div>
             </div>
 
             <button
-              className="w-full rounded-[1.3rem] bg-sky-700 py-5 text-lg font-bold text-white transition hover:bg-sky-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-stone-300"
+              className="w-full rounded-lg bg-emerald-800 py-4 text-base font-bold text-white transition hover:bg-emerald-900 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-stone-300"
               onClick={() => {
                 const formElement = document.querySelector('form');
                 if (formElement) formElement.requestSubmit();
@@ -512,19 +610,40 @@ export function CheckoutPage() {
               {pendingPayment ? 'Đơn hàng đã được tạo' : submitting ? t('checkout.processing') : t('checkout.complete_btn')}
             </button>
 
-            <div className="rounded-[1.4rem] bg-slate-50 p-5">
-              <div className="flex justify-center gap-6 opacity-45 grayscale">
-                <span className="material-symbols-outlined text-4xl">credit_card</span>
-                <span className="material-symbols-outlined text-4xl">local_shipping</span>
-                <span className="material-symbols-outlined text-4xl">inventory_2</span>
+            <div className="rounded-xl border border-stone-100 bg-white p-4">
+              <div className="flex justify-center gap-5 text-stone-400">
+                <span className="material-symbols-outlined text-3xl">credit_card</span>
+                <span className="material-symbols-outlined text-3xl">local_shipping</span>
+                <span className="material-symbols-outlined text-3xl">inventory_2</span>
               </div>
-              <p className="mt-4 text-center text-[12px] leading-6 text-stone-500">
+              <p className="mt-3 text-center text-xs leading-6 text-stone-500">
                 {t('checkout.secure_note')}
               </p>
             </div>
           </div>
         </aside>
       </div>
+      </div>
+    </main>
+  );
+}
+
+function CheckoutStep({ active, label, number }: { active: boolean; label: string; number: string }) {
+  return (
+    <div className={`rounded-lg px-3 py-3 text-center ${active ? 'bg-emerald-800 text-white' : 'bg-stone-100 text-stone-500'}`}>
+      <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-white/16 text-xs font-bold ring-1 ring-white/25">
+        {number}
+      </span>
+      <span className="mt-2 block text-[11px] font-bold uppercase tracking-[0.12em]">{label}</span>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-stone-500">{label}</span>
+      <span className={`text-right font-semibold ${highlight ? 'text-emerald-700' : 'text-stone-950'}`}>{value}</span>
     </div>
   );
 }
@@ -542,9 +661,9 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{label}</label>
+      <label className="text-xs font-bold uppercase tracking-[0.14em] text-stone-500">{label}</label>
       <input
-        className="w-full rounded-2xl border border-stone-200 px-4 py-3.5 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        className="w-full rounded-lg border border-stone-200 px-4 py-3.5 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -571,19 +690,19 @@ function PaymentOption({
     <button
       className={`rounded-[1.4rem] border p-5 text-left transition ${
         active
-          ? 'border-sky-300 bg-sky-50 shadow-[0_16px_32px_rgba(14,116,144,0.12)]'
-          : 'border-stone-100 bg-slate-50/70 hover:border-sky-200 hover:bg-white'
+          ? 'border-emerald-300 bg-emerald-50 shadow-[0_14px_28px_rgba(6,95,70,0.10)]'
+          : 'border-stone-200 bg-stone-50/70 hover:border-emerald-200 hover:bg-white'
       }`}
       onClick={onClick}
       type="button"
     >
       <div className="flex items-start gap-4">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ${active ? 'text-sky-700' : 'text-stone-500'}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ${active ? 'text-emerald-800' : 'text-stone-500'}`}>
           <span className="material-symbols-outlined">{icon}</span>
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-          <p className="mt-2 text-sm leading-7 text-stone-600">{description}</p>
+          <h3 className="text-base font-bold text-stone-950">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-stone-600">{description}</p>
         </div>
       </div>
     </button>

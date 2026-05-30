@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
+from app.utils.slug import public_article_slug
 
 class BlogArticle(Base):
     __tablename__ = "blog_articles"
@@ -11,6 +12,11 @@ class BlogArticle(Base):
     slug = Column(String(255), unique=True, index=True, nullable=False)
     content = Column(Text, nullable=False)
     image_url = Column(String(500), nullable=True)
+    focus_keyword = Column(String(255), nullable=True)
+    seo_title = Column(String(255), nullable=True)
+    seo_description = Column(String(320), nullable=True)
+    canonical_url = Column(String(500), nullable=True)
+    og_image_url = Column(String(500), nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("blog_categories.id"), nullable=False)
     is_published = Column(Boolean, default=False)
@@ -19,3 +25,7 @@ class BlogArticle(Base):
 
     author = relationship("User", backref="articles")
     category = relationship("BlogCategory", back_populates="articles")
+
+    @property
+    def public_slug(self) -> str:
+        return public_article_slug(self.title, self.slug)

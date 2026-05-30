@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { assetUrl, type ProductDiscount } from '../../services/api';
@@ -51,6 +51,20 @@ function CountdownTimer({ endTime }: { endTime: string }) {
   );
 }
 
+function responsiveImageSet(value: string, widths: number[], quality: number, optimizeUploads = false) {
+  return widths.map((width) => `${assetUrl(value, { width, quality, optimizeUploads })} ${width}w`).join(', ');
+}
+
+function fallbackToOriginalUpload(event: SyntheticEvent<HTMLImageElement>) {
+  if (event.currentTarget.dataset.fallbackApplied === 'true') return;
+  const fallback = event.currentTarget.dataset.fallbackSrc;
+  if (fallback && event.currentTarget.src !== fallback) {
+    event.currentTarget.dataset.fallbackApplied = 'true';
+    event.currentTarget.srcset = '';
+    event.currentTarget.src = fallback;
+  }
+}
+
 export function ProductCard({ id, name, subtitle, brandName, price, imageUrl, badge, showQuickAdd = false, wishlisted, onToggleWishlist, discount, stock, onQuickAdd }: ProductCardProps) {
   const { t } = useTranslation();
 
@@ -63,9 +77,17 @@ export function ProductCard({ id, name, subtitle, brandName, price, imageUrl, ba
       <Link to={`/product/${id}`} className="block">
         <div className="aspect-[4/5] bg-stone-100 rounded-2xl overflow-hidden mb-4 relative shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1.5">
           <img
-            src={assetUrl(imageUrl)}
+            src={assetUrl(imageUrl, { width: 360, quality: 54, optimizeUploads: true })}
+            srcSet={imageUrl ? responsiveImageSet(imageUrl, [320, 360, 420], 54, true) : undefined}
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            data-fallback-src={imageUrl ? assetUrl(imageUrl) : undefined}
+            onError={fallbackToOriginalUpload}
             alt={name}
             className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${imageUrl ? '' : 'hidden'}`}
+            width={360}
+            height={450}
+            loading="lazy"
+            decoding="async"
           />
           {!imageUrl ? (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 to-emerald-50 text-emerald-800">
@@ -142,6 +164,7 @@ export function ProductCard({ id, name, subtitle, brandName, price, imageUrl, ba
         <button
           className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition hover:scale-110 hover:bg-white"
           onClick={(e) => { e.preventDefault(); onToggleWishlist(parseInt(id)); }}
+          aria-label={wishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
         >
           <span className={`material-symbols-outlined text-lg ${wishlisted ? 'text-red-500' : 'text-stone-400'}`}>
             {wishlisted ? 'favorite' : 'favorite_border'}

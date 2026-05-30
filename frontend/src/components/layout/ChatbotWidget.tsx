@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { chatbotApi, type ProductSuggestion } from '../../services/api';
 import { cartStorage } from '../../services/cart';
@@ -83,13 +82,9 @@ export function ChatbotWidget() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-[70] flex flex-col items-end sm:bottom-6 sm:left-auto sm:right-6 lg:bottom-8 lg:right-8">
-      <AnimatePresence>
+      <>
         {isOpen ? (
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 14, scale: 0.97 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+          <div
             className="mb-3 flex max-h-[calc(100dvh-7rem)] w-[min(100%,26rem)] flex-col overflow-hidden rounded-[1.75rem] border border-emerald-100/80 bg-[linear-gradient(180deg,rgba(247,251,248,0.98)_0%,rgba(239,247,242,0.96)_100%)] shadow-[0_30px_80px_rgba(56,106,82,0.2)] backdrop-blur sm:mb-4 sm:max-h-[min(85vh,42rem)] sm:w-[min(92vw,25rem)]"
           >
             <div className="relative shrink-0 overflow-hidden border-b border-emerald-300/20 bg-[linear-gradient(135deg,#254a39_0%,#356a52_52%,#4f8d6a_100%)] px-4 py-3.5 text-white sm:px-5 sm:py-5">
@@ -236,18 +231,17 @@ export function ChatbotWidget() {
                 </button>
               </form>
             </div>
-          </motion.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
-      <motion.button
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.97 }}
+      <button
         className={`group relative items-center justify-center rounded-full bg-[linear-gradient(135deg,#254a39_0%,#356a52_60%,#4f8d6a_100%)] text-white shadow-[0_18px_45px_rgba(53,106,82,0.34)] ${
           isOpen ? 'hidden sm:flex sm:h-auto sm:w-auto sm:gap-3 sm:px-5 sm:py-4' : 'flex h-16 w-16 sm:h-auto sm:w-auto sm:gap-3 sm:px-5 sm:py-4'
         }`}
         onClick={() => setIsOpen((prev) => !prev)}
         type="button"
+        aria-label={isOpen ? t('chatbot.close') : t('chatbot.toggle_button')}
       >
         <span className="absolute inset-0 rounded-full bg-emerald-400/40 opacity-60 blur-md transition group-hover:opacity-80" />
         <span className="absolute inset-0 rounded-full border border-white/25" />
@@ -264,7 +258,7 @@ export function ChatbotWidget() {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
         </div>
-      </motion.button>
+      </button>
     </div>
   );
 }

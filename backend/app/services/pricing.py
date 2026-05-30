@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 from typing import Iterable, Optional
 
 from sqlalchemy import func
@@ -18,10 +19,68 @@ def _apply_product_discount(price: float, product: Product) -> float:
     if not product.discount:
         return price
     disc = product.discount
-    now = datetime.now(timezone.utc)
+    now = datetime.now(disc.start_time.tzinfo or timezone.utc)
+    if disc.start_time.tzinfo is None:
+        now = datetime.now()
     if disc.is_active and disc.start_time <= now <= disc.end_time:
         return price * (1 - disc.discount_percent / 100)
     return price
+
+
+def _coerce_float(value, default: float | None = None) -> float | None:
+    try:
+        if value in ("", None):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_variant_options(product: Product) -> list[dict]:
+    if not product.variant_options:
+        return []
+    try:
+        parsed = json.loads(product.variant_options)
+    except (TypeError, ValueError):
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _find_variant(product: Product, variant_code: str | None) -> dict | None:
+    if not variant_code:
+        return None
+    normalized = variant_code.strip().lower()
+    for variant in _parse_variant_options(product):
+        code = str(variant.get("code") or variant.get("sku") or variant.get("name") or "").strip().lower()
+        if code and code == normalized:
+            return variant
+    return None
+
+
+def _is_variant_discount_active(variant: dict) -> bool:
+    discount_percent = _coerce_float(variant.get("discount_percent"), 0) or 0
+    if discount_percent <= 0:
+        return False
+    start_raw = variant.get("discount_start_time")
+    end_raw = variant.get("discount_end_time")
+    if not start_raw or not end_raw:
+        return False
+    try:
+        start = datetime.fromisoformat(str(start_raw).replace("Z", "+00:00"))
+        end = datetime.fromisoformat(str(end_raw).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    now = datetime.now(start.tzinfo or timezone.utc)
+    if start.tzinfo is None:
+        now = datetime.now()
+    return start <= now <= end
+
+
+def _apply_variant_discount(price: float, variant: dict | None) -> float:
+    if not variant or not _is_variant_discount_active(variant):
+        return price
+    discount_percent = _coerce_float(variant.get("discount_percent"), 0) or 0
+    return price * (1 - discount_percent / 100)
 
 
 @dataclass
@@ -92,7 +151,7 @@ def resolve_pricing_rule(db: Session, user_id: int, retail_total: float) -> Pric
             label=wholesale_tier.name,
             rule_name=f"{wholesale_tier.name} (đơn {retail_total:,.0f}đ)".replace(",", "."),
             discount_percent=float(wholesale_tier.discount_percent or 0),
-            use_wholesale_price=False,
+            use_wholesale_price=True,
         )
 
     best_tier: Optional[PricingTier] = None
@@ -132,17 +191,20 @@ def calculate_order_total(db: Session, items: list, pricing_rule: Optional[Prici
         if not product:
             continue
 
-        retail_unit_price = float(product.retail_price)
+        variant = _find_variant(product, getattr(item, "variant_code", None))
+        retail_unit_price = _coerce_float(variant.get("retail_price") if variant else None, float(product.retail_price)) or float(product.retail_price)
 
-        effective_retail = _apply_product_discount(retail_unit_price, product)
+        effective_retail = _apply_variant_discount(_apply_product_discount(retail_unit_price, product), variant)
 
         combo_info = _combo_map.get(item.product_id)
         if combo_info:
             effective_retail = effective_retail * (1 - combo_info["discount_percent"] / 100)
 
         base_unit_price = effective_retail
-        if active_rule.use_wholesale_price and product.wholesale_price:
-            wholesale_base = _apply_product_discount(float(product.wholesale_price), product)
+        if active_rule.use_wholesale_price and (variant or product.wholesale_price):
+            wholesale_price = _coerce_float(variant.get("wholesale_price") if variant else None, None)
+            wholesale_base_value = wholesale_price if wholesale_price is not None else float(product.wholesale_price or retail_unit_price)
+            wholesale_base = _apply_variant_discount(_apply_product_discount(wholesale_base_value, product), variant)
             if combo_info:
                 wholesale_base = wholesale_base * (1 - combo_info["discount_percent"] / 100)
             base_unit_price = wholesale_base
@@ -162,6 +224,8 @@ def calculate_order_total(db: Session, items: list, pricing_rule: Optional[Prici
                 "base_unit_price": base_unit_price,
                 "combo_id": combo_info["combo_id"] if combo_info else None,
                 "combo_discount_percent": combo_info["discount_percent"] if combo_info else None,
+                "variant_code": getattr(item, "variant_code", None),
+                "variant_name": str(variant.get("name") or variant.get("code") or variant.get("sku") or "") if variant else None,
             }
         )
 

@@ -5,6 +5,8 @@ const CART_EVENT = 'tmc-cart-updated';
 
 export type CartItem = {
   product_id: number;
+  variant_code?: string | null;
+  variant_name?: string | null;
   quantity: number;
   combo_id?: number;
   combo_discount_percent?: number;
@@ -13,6 +15,7 @@ export type CartItem = {
     name: string;
     image_url: string | null;
     retail_price: number;
+    wholesale_price?: number | null;
     brand_name?: string | null;
     category_name?: string | null;
     stock?: number;
@@ -47,6 +50,7 @@ function normalizeProduct(product: Product | CartItem['product']): CartItem['pro
     name: product.name,
     image_url: product.image_url ?? null,
     retail_price: product.retail_price,
+    wholesale_price: product.wholesale_price ?? null,
     brand_name: storedProduct ? product.brand_name ?? null : product.brand?.name ?? null,
     category_name: storedProduct ? product.category_name ?? null : product.category?.name ?? null,
     stock: 'stock' in product ? product.stock : undefined,
@@ -69,18 +73,24 @@ export const cartStorage = {
       return sum + price * item.quantity;
     }, 0);
   },
-  addItem(product: Product | CartItem['product'], quantity = 1) {
+  addItem(product: Product | CartItem['product'], quantity = 1, variant?: { code?: string | null; name?: string | null }) {
     const items = readCart();
-    const existing = items.find((item) => item.product_id === product.id);
+    const variantCode = variant?.code || null;
+    const existing = items.find((item) => item.product_id === product.id && (item.variant_code || null) === variantCode);
     const maxStock = 'stock' in product && typeof product.stock === 'number' ? product.stock : undefined;
     if (existing) {
       existing.quantity += quantity;
+      existing.variant_code = variantCode;
+      existing.variant_name = variant?.name || null;
+      existing.product = normalizeProduct(product);
       if (maxStock !== undefined) {
         existing.quantity = Math.min(existing.quantity, maxStock);
       }
     } else {
       items.push({
         product_id: product.id,
+        variant_code: variantCode,
+        variant_name: variant?.name || null,
         quantity: maxStock !== undefined ? Math.min(quantity, maxStock) : quantity,
         product: normalizeProduct(product),
       });
@@ -115,14 +125,20 @@ export const cartStorage = {
   removeCombo(comboId: number) {
     writeCart(readCart().filter((item) => item.combo_id !== comboId));
   },
-  updateQuantity(productId: number, quantity: number) {
+  updateQuantity(productId: number, quantity: number, variantCode?: string | null) {
     const items = readCart()
-      .map((item) => item.product_id === productId ? { ...item, quantity } : item)
+      .map((item) => item.product_id === productId && (item.variant_code || null) === (variantCode || null) ? { ...item, quantity } : item)
       .filter((item) => item.quantity > 0);
     writeCart(items);
   },
-  removeItem(productId: number) {
-    writeCart(readCart().filter((item) => item.product_id !== productId));
+  updateProduct(product: Product | CartItem['product']) {
+    const items = readCart().map((item) => (
+      item.product_id === product.id ? { ...item, product: normalizeProduct(product) } : item
+    ));
+    writeCart(items);
+  },
+  removeItem(productId: number, variantCode?: string | null) {
+    writeCart(readCart().filter((item) => !(item.product_id === productId && (item.variant_code || null) === (variantCode || null))));
   },
   clear() {
     writeCart([]);

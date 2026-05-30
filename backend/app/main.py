@@ -6,7 +6,7 @@ from app.db.database import engine, SessionLocal
 from app.db.base import Base
 from app.db.seed import seed_database
 from app.db.schema_sync import sync_runtime_schema
-from app.api import auth, products, categories, brands, orders, admin, content, uploads, notifications, chatbot, wishlist, banners, combos, payments
+from app.api import auth, products, categories, brands, orders, admin, content, uploads, notifications, chatbot, wishlist, banners, combos, payments, seo
 from app.core.config import settings
 
 app = FastAPI(title="TMC Medical E-Commerce API", version="1.0.0")
@@ -38,6 +38,7 @@ app.include_router(wishlist.router, prefix="/api")
 app.include_router(banners.router, prefix="/api")
 app.include_router(combos.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
+app.include_router(seo.router)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 @app.on_event("startup")

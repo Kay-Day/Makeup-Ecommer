@@ -91,6 +91,7 @@ export interface Combo {
 
 export interface Product {
   id: number;
+  product_code: string | null;
   name: string;
   description: string | null;
   image_url: string | null;
@@ -147,6 +148,8 @@ export interface DiscountCode {
 export interface OrderItem {
   id: number;
   product_id: number;
+  variant_code?: string | null;
+  variant_name?: string | null;
   quantity: number;
   unit_price: number;
   combo_id?: number | null;
@@ -187,6 +190,35 @@ export interface Order {
   shipping_city?: string | null;
   shipping_postal_code?: string | null;
   tracking_number?: string | null;
+}
+
+export interface OrderQuoteItem {
+  product_id: number;
+  variant_code?: string | null;
+  variant_name?: string | null;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  retail_unit_price: number;
+  base_unit_price: number;
+  combo_id?: number | null;
+  combo_discount_percent?: number | null;
+}
+
+export interface OrderQuote {
+  total_amount: number;
+  applied_price_type: string;
+  pricing_label: string;
+  pricing_rule_name: string;
+  pricing_discount_percent: number;
+  subtotal_before_discount: number;
+  item_subtotal: number;
+  pricing_discount_amount: number;
+  discount_code_amount: number;
+  total_discount_amount: number;
+  shipping_fee: number;
+  subtotal_after_discount: number;
+  items: OrderQuoteItem[];
 }
 
 export interface WishlistItem {
@@ -294,8 +326,14 @@ export interface BlogArticle {
   id: number;
   title: string;
   slug: string;
+  public_slug?: string | null;
   content: string;
   image_url: string | null;
+  focus_keyword: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  canonical_url: string | null;
+  og_image_url: string | null;
   author_id: number;
   category_id: number;
   is_published: boolean;
@@ -397,8 +435,10 @@ export const comboApi = {
 };
 
 export const productApi = {
-  getAll: (params?: { category_id?: number; brand_id?: number; search?: string; min_price?: number; max_price?: number; badge?: string; limit?: number; offset?: number; sort?: string }) =>
+  getAll: (params?: { category_id?: number; brand_id?: number; search?: string; min_price?: number; max_price?: number; badge?: string; sale?: boolean; limit?: number; offset?: number; sort?: string }) =>
     api.get<Product[]>('/products', { params }),
+  getCount: (params?: { category_id?: number; brand_id?: number; search?: string; min_price?: number; max_price?: number; badge?: string; sale?: boolean }) =>
+    api.get<{ count: number }>('/products/count', { params }),
   getById: (id: number) => api.get<Product>(`/products/${id}`),
   getReviews: (productId: number) => api.get<ProductReview[]>(`/products/${productId}/reviews`),
   createReview: (productId: number, payload: { rating: number; comment?: string }) =>
@@ -420,6 +460,7 @@ export const blogApi = {
   getArticles: (params?: { category_id?: number; search?: string }) =>
     api.get<BlogArticle[]>('/blog-articles', { params }),
   getArticle: (id: number) => api.get<BlogArticle>(`/blog-articles/${id}`),
+  getArticleBySlug: (slug: string) => api.get<BlogArticle>(`/blog-articles/slug/${encodeURIComponent(slug)}`),
 };
 
 export const authApi = {
@@ -433,7 +474,7 @@ export const authApi = {
 
 export const orderApi = {
   create: (payload: {
-    items: { product_id: number; quantity: number; combo_id?: number }[];
+    items: { product_id: number; quantity: number; combo_id?: number; variant_code?: string | null }[];
     discount_code?: string;
     shipping_full_name: string;
     shipping_phone: string;
@@ -443,6 +484,11 @@ export const orderApi = {
     payment_method: 'cod' | 'sepay';
   }) =>
     api.post<Order>('/orders', payload),
+  quote: (payload: {
+    items: { product_id: number; quantity: number; combo_id?: number; variant_code?: string | null }[];
+    discount_code?: string;
+  }) =>
+    api.post<OrderQuote>('/orders/quote', payload),
   getAll: () => api.get<Order[]>('/orders'),
   getById: (id: number) => api.get<Order>(`/orders/${id}`),
   cancel: (id: number) => api.put<Order>(`/orders/${id}/cancel`),
@@ -485,12 +531,52 @@ export const uploadApi = {
   },
 };
 
-export function assetUrl(value: string | null | undefined) {
+type AssetUrlOptions = {
+  width?: number;
+  quality?: number;
+  optimizeUploads?: boolean;
+};
+
+function safeUploadsBase() {
+  if (
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:' &&
+    UPLOADS_BASE_URL.startsWith('http://')
+  ) {
+    return `${window.location.origin}/uploads`;
+  }
+  return UPLOADS_BASE_URL;
+}
+
+function optimizedUploadUrl(pathname: string, options: AssetUrlOptions) {
+  if (!options.optimizeUploads || !options.width) return `${safeUploadsBase()}${pathname.slice('/uploads'.length)}`;
+  const filename = pathname.split('/').pop();
+  if (!filename) return `${safeUploadsBase()}${pathname.slice('/uploads'.length)}`;
+  const params = new URLSearchParams({
+    w: String(options.width),
+    q: String(options.quality || 65),
+  });
+  return `${CONFIG_API_BASE_URL}/uploads/optimized/${encodeURIComponent(filename)}?${params.toString()}`;
+}
+
+export function assetUrl(value: string | null | undefined, options: AssetUrlOptions = {}) {
   if (!value) return '';
-  if (value.startsWith('/uploads/')) return `${UPLOADS_BASE_URL}${value.slice('/uploads'.length)}`;
+  if (value.startsWith('/uploads/')) return optimizedUploadUrl(value, options);
   try {
     const url = new URL(value);
-    if (url.pathname.startsWith('/uploads/')) return `${UPLOADS_BASE_URL}${url.pathname.slice('/uploads'.length)}`;
+    if (url.pathname.startsWith('/uploads/')) return optimizedUploadUrl(url.pathname, options);
+    if (url.hostname === 'images.unsplash.com') {
+      const currentWidth = Number(url.searchParams.get('w') || 0);
+      const targetWidth = options.width || 900;
+      if (!currentWidth || currentWidth > targetWidth) url.searchParams.set('w', String(targetWidth));
+      url.searchParams.set('q', String(options.quality || 60));
+      url.searchParams.set('fm', 'webp');
+      return url.toString();
+    }
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.protocol === 'http:') {
+      url.protocol = 'https:';
+      return url.toString();
+    }
   } catch {
     // Keep non-URL values as provided.
   }
@@ -633,6 +719,11 @@ export const adminApi = {
     slug: string;
     content: string;
     image_url?: string | null;
+    focus_keyword?: string | null;
+    seo_title?: string | null;
+    seo_description?: string | null;
+    canonical_url?: string | null;
+    og_image_url?: string | null;
     category_id: number;
     is_published: boolean;
   }) => api.post<BlogArticle>('/admin/blog-articles', payload),
@@ -641,6 +732,11 @@ export const adminApi = {
     slug: string;
     content: string;
     image_url: string | null;
+    focus_keyword: string | null;
+    seo_title: string | null;
+    seo_description: string | null;
+    canonical_url: string | null;
+    og_image_url: string | null;
     category_id: number;
     is_published: boolean;
   }>) => api.put<BlogArticle>(`/admin/blog-articles/${id}`, payload),

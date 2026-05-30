@@ -18,6 +18,7 @@ def sync_runtime_schema(engine: Engine) -> None:
 
     _add_column_if_missing(engine, "discount_settings", "default_shipping_fee", "default_shipping_fee FLOAT DEFAULT 30000")
     _add_column_if_missing(engine, "categories", "parent_id", "parent_id INTEGER REFERENCES categories(id)")
+    _add_column_if_missing(engine, "products", "product_code", "product_code VARCHAR(100)")
     _add_column_if_missing(engine, "products", "variant_options", "variant_options TEXT")
 
     order_columns = {
@@ -41,6 +42,8 @@ def sync_runtime_schema(engine: Engine) -> None:
     order_item_columns = {
         "combo_id": "combo_id INTEGER REFERENCES combos(id)",
         "combo_discount_percent": "combo_discount_percent INTEGER",
+        "variant_code": "variant_code VARCHAR(100)",
+        "variant_name": "variant_name VARCHAR(255)",
     }
     for column_name, ddl in order_item_columns.items():
         _add_column_if_missing(engine, "order_items", column_name, ddl)
@@ -50,3 +53,13 @@ def sync_runtime_schema(engine: Engine) -> None:
     }
     for column_name, ddl in payment_columns.items():
         _add_column_if_missing(engine, "payments", column_name, ddl)
+
+    blog_article_columns = {
+        "focus_keyword": "focus_keyword VARCHAR(255)",
+        "seo_title": "seo_title VARCHAR(255)",
+        "seo_description": "seo_description VARCHAR(320)",
+        "canonical_url": "canonical_url VARCHAR(500)",
+        "og_image_url": "og_image_url VARCHAR(500)",
+    }
+    for column_name, ddl in blog_article_columns.items():
+        _add_column_if_missing(engine, "blog_articles", column_name, ddl)

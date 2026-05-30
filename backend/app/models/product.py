@@ -14,6 +14,7 @@ class Product(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    product_code = Column(String(100), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +29,8 @@ import {
   type Combo,
   assetUrl,
 } from '../services/api';
-import { RichTextEditor } from '../components/ui/RichTextEditor';
+
+const RichTextEditor = lazy(() => import('../components/ui/RichTextEditor').then((module) => ({ default: module.RichTextEditor })));
 
 type AdminTab =
   | 'dashboard'
@@ -50,6 +51,10 @@ function slugify(value: string) {
   return value
     .toLowerCase()
     .trim()
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
@@ -58,11 +63,21 @@ function currency(value: number) {
   return `${value.toLocaleString('vi-VN')}đ`;
 }
 
+const ADMIN_PAGE_SIZE = 20;
+
 type ProductVariantOption = {
+  code: string;
   name: string;
+  retail_price?: number;
+  wholesale_price?: number;
   image_url?: string;
   stock?: number;
+  discount_percent?: number;
+  discount_start_time?: string;
+  discount_end_time?: string;
 };
+
+type ProductVariantPatch = Partial<ProductVariantOption>;
 
 function parseVariantOptions(value: string | null | undefined): ProductVariantOption[] {
   if (!value) return [];
@@ -71,11 +86,17 @@ function parseVariantOptions(value: string | null | undefined): ProductVariantOp
     if (Array.isArray(parsed)) {
       return parsed
         .map((item) => ({
+          code: String(item?.code || item?.sku || '').trim(),
           name: String(item?.name || '').trim(),
+          retail_price: Number.isFinite(Number(item?.retail_price)) ? Number(item.retail_price) : undefined,
+          wholesale_price: Number.isFinite(Number(item?.wholesale_price)) ? Number(item.wholesale_price) : undefined,
           image_url: item?.image_url ? String(item.image_url).trim() : undefined,
           stock: Number.isFinite(Number(item?.stock)) ? Number(item.stock) : undefined,
+          discount_percent: Number.isFinite(Number(item?.discount_percent)) ? Number(item.discount_percent) : undefined,
+          discount_start_time: item?.discount_start_time ? String(item.discount_start_time).slice(0, 16) : undefined,
+          discount_end_time: item?.discount_end_time ? String(item.discount_end_time).slice(0, 16) : undefined,
         }))
-        .filter((item) => item.name);
+        .filter((item) => item.name || item.code);
     }
   } catch {
     // Fall through to the simple line parser below.
@@ -85,6 +106,7 @@ function parseVariantOptions(value: string | null | undefined): ProductVariantOp
     .map((line) => {
       const [name = '', image_url = '', stock = ''] = line.split('|').map((part) => part.trim());
       return {
+        code: name,
         name,
         image_url: image_url || undefined,
         stock: stock ? Number(stock) : undefined,
@@ -93,15 +115,21 @@ function parseVariantOptions(value: string | null | undefined): ProductVariantOp
     .filter((item) => item.name);
 }
 
-function variantOptionsToText(value: string | null | undefined) {
-  return parseVariantOptions(value)
-    .map((item) => [item.name, item.image_url || '', item.stock ?? ''].join(' | ').replace(/\s+\|\s+$/g, ''))
-    .join('\n');
-}
-
-function variantTextToJson(value: string) {
-  const options = parseVariantOptions(value);
-  return options.length ? JSON.stringify(options) : null;
+function variantOptionsToJson(options: ProductVariantOption[]) {
+  const cleaned = options
+    .map((item) => ({
+      code: item.code.trim(),
+      name: item.name.trim(),
+      retail_price: Number.isFinite(Number(item.retail_price)) ? Number(item.retail_price) : undefined,
+      wholesale_price: Number.isFinite(Number(item.wholesale_price)) ? Number(item.wholesale_price) : undefined,
+      image_url: item.image_url?.trim() || undefined,
+      stock: Number.isFinite(Number(item.stock)) ? Number(item.stock) : undefined,
+      discount_percent: Number.isFinite(Number(item.discount_percent)) ? Number(item.discount_percent) : undefined,
+      discount_start_time: item.discount_start_time || undefined,
+      discount_end_time: item.discount_end_time || undefined,
+    }))
+    .filter((item) => item.name || item.code);
+  return cleaned.length ? JSON.stringify(cleaned) : null;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -173,7 +201,7 @@ function ImageField({
           {uploading ? 'Đang upload...' : 'Upload ảnh'}
         </label>
         {preview ? (
-          <img src={assetUrl(preview)} alt="Preview" className="h-20 w-20 rounded-xl border border-stone-200 object-cover" />
+          <img src={assetUrl(preview)} alt="Preview" className="h-20 w-20 rounded-xl border border-stone-200 object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 text-xs text-stone-400">
             Preview
@@ -201,6 +229,9 @@ export function AdminOverviewPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [productPage, setProductPage] = useState(1);
+  const [brandPage, setBrandPage] = useState(1);
+  const [adminPages, setAdminPages] = useState<Record<string, number>>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
@@ -231,6 +262,7 @@ export function AdminOverviewPage() {
   const [categoryForm, setCategoryForm] = useState({ id: 0, name: '', slug: '', image_url: '', parent_id: 0 });
   const [productForm, setProductForm] = useState({
     id: 0,
+    product_code: '',
     name: '',
     description: '',
     image_url: '',
@@ -289,6 +321,11 @@ export function AdminOverviewPage() {
     slug: '',
     content: '',
     image_url: '',
+    focus_keyword: '',
+    seo_title: '',
+    seo_description: '',
+    canonical_url: '',
+    og_image_url: '',
     category_id: 0,
     is_published: true,
   });
@@ -304,9 +341,18 @@ export function AdminOverviewPage() {
   });
   const [trackingInput, setTrackingInput] = useState<Record<number, string>>({});
   const [newImageUrl, setNewImageUrl] = useState<Record<number, string>>({});
+  const [productGalleryDraft, setProductGalleryDraft] = useState<string[]>([]);
+  const [galleryUrlInput, setGalleryUrlInput] = useState('');
+  const [productVariantRows, setProductVariantRows] = useState<ProductVariantOption[]>([]);
   const [productDiscountForm, setProductDiscountForm] = useState({
     productId: 0,
     id: 0,
+    discount_percent: 0,
+    start_time: '',
+    end_time: '',
+    is_active: true,
+  });
+  const [productSaleForm, setProductSaleForm] = useState({
     discount_percent: 0,
     start_time: '',
     end_time: '',
@@ -321,9 +367,14 @@ export function AdminOverviewPage() {
   const resetUserForm = () => setUserForm({ id: 0, email: '', password: '', full_name: '', phone: '', role: 'customer', is_active: true });
   const resetBrandForm = () => setBrandForm({ id: 0, name: '', logo_url: '' });
   const resetCategoryForm = () => setCategoryForm({ id: 0, name: '', slug: '', image_url: '', parent_id: 0 });
-  const resetProductForm = () =>
+  const resetProductForm = () => {
+    setProductGalleryDraft([]);
+    setGalleryUrlInput('');
+    setProductVariantRows([]);
+    setProductSaleForm({ discount_percent: 0, start_time: '', end_time: '', is_active: true });
     setProductForm({
       id: 0,
+      product_code: '',
       name: '',
       description: '',
       image_url: '',
@@ -336,6 +387,7 @@ export function AdminOverviewPage() {
       stock: 0,
       is_active: true,
     });
+  };
   const resetDiscountForm = () =>
     setDiscountForm({
       id: 0,
@@ -387,6 +439,11 @@ export function AdminOverviewPage() {
       slug: '',
       content: '',
       image_url: '',
+      focus_keyword: '',
+      seo_title: '',
+      seo_description: '',
+      canonical_url: '',
+      og_image_url: '',
       category_id: blogCategories[0]?.id ?? 0,
       is_published: true,
     });
@@ -492,12 +549,71 @@ export function AdminOverviewPage() {
     if (productForm.id && !productImages[productForm.id]) {
       productApi.getImages(productForm.id).then((res) => {
         setProductImages((prev) => ({ ...prev, [productForm.id]: res.data }));
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [productForm.id]);
 
   const unreadNotificationCount = notifications.filter((item) => !item.is_read).length;
   const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
+  const variantStockTotal = productVariantRows.reduce((sum, item) => sum + Number(item.stock || 0), 0);
+  const clampAdminPage = (page: number, total: number) => Math.min(page, Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE)));
+  const safeProductPage = clampAdminPage(productPage, products.length);
+  const safeBrandPage = clampAdminPage(brandPage, brands.length);
+  const pagedProducts = products.slice((safeProductPage - 1) * ADMIN_PAGE_SIZE, safeProductPage * ADMIN_PAGE_SIZE);
+  const pagedBrands = brands.slice((safeBrandPage - 1) * ADMIN_PAGE_SIZE, safeBrandPage * ADMIN_PAGE_SIZE);
+  const adminPage = (key: string) => adminPages[key] || 1;
+  const setAdminPage = (key: string, page: number) => {
+    setAdminPages((prev) => ({ ...prev, [key]: page }));
+  };
+  const paginateItems = <T,>(items: T[], key: string) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / ADMIN_PAGE_SIZE));
+    const safePage = Math.min(adminPage(key), totalPages);
+    return items.slice((safePage - 1) * ADMIN_PAGE_SIZE, safePage * ADMIN_PAGE_SIZE);
+  };
+  const pagedUsers = paginateItems(users, 'users');
+  const pagedCategories = paginateItems(categories, 'categories');
+  const pagedOrders = paginateItems(orders, 'orders');
+  const pagedSePayLogs = paginateItems(sepayLogs, 'sepayLogs');
+  const pagedDiscountCodes = paginateItems(discountCodes, 'discountCodes');
+  const pagedProductDiscounts = paginateItems(productDiscounts, 'productDiscounts');
+  const pagedPricingTiers = paginateItems(pricingTiers, 'pricingTiers');
+  const pagedWholesaleTiers = paginateItems(wholesaleTiers, 'wholesaleTiers');
+  const pagedChatbotKeys = paginateItems(chatbotKeys, 'chatbotKeys');
+  const pagedBlogCategories = paginateItems(blogCategories, 'blogCategories');
+  const pagedArticles = paginateItems(articles, 'articles');
+  const pagedBanners = paginateItems(banners, 'banners');
+  const pagedCombos = paginateItems(combos, 'combos');
+
+  const updateProductVariants = (nextVariants: ProductVariantOption[]) => {
+    setProductVariantRows(nextVariants);
+    setProductForm((prev) => ({ ...prev, variant_options: variantOptionsToJson(nextVariants) || '' }));
+  };
+
+  const updateProductVariant = (index: number, patch: ProductVariantPatch) => {
+    const nextVariants = [...productVariantRows];
+    nextVariants[index] = { ...nextVariants[index], ...patch };
+    updateProductVariants(nextVariants);
+  };
+
+  const addProductVariant = () => {
+    updateProductVariants([...productVariantRows, { code: '', name: '', retail_price: productForm.retail_price || 0, wholesale_price: productForm.wholesale_price || 0, image_url: '', stock: 0 }]);
+  };
+
+  const removeProductVariant = (index: number) => {
+    updateProductVariants(productVariantRows.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const addDraftGalleryImage = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setProductGalleryDraft((prev) => [...prev, trimmed]);
+    setGalleryUrlInput('');
+    setProductForm((prev) => ({ ...prev, image_url: prev.image_url || trimmed }));
+  };
+
+  const removeDraftGalleryImage = (index: number) => {
+    setProductGalleryDraft((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
 
   const markNotificationRead = async (notificationId: number) => {
     try {
@@ -605,6 +721,7 @@ export function AdminOverviewPage() {
     event.preventDefault();
     await withSaving(async () => {
       const payload = {
+        product_code: productForm.product_code || null,
         name: productForm.name,
         description: productForm.description || null,
         image_url: productForm.image_url || null,
@@ -612,17 +729,37 @@ export function AdminOverviewPage() {
         brand_id: productForm.brand_id || null,
         retail_price: Number(productForm.retail_price),
         wholesale_price: Number(productForm.wholesale_price) || null,
-        variant_options: variantTextToJson(productForm.variant_options),
+        variant_options: variantOptionsToJson(productVariantRows),
         badge: productForm.badge || null,
-        stock: Number(productForm.stock),
+        stock: productVariantRows.length ? variantStockTotal : Number(productForm.stock),
         is_active: productForm.is_active,
       };
+      let savedProductId = productForm.id;
       if (productForm.id) {
         await adminApi.updateProduct(productForm.id, payload);
         showMessage('Đã cập nhật sản phẩm.');
       } else {
-        await adminApi.createProduct(payload);
+        const response = await adminApi.createProduct(payload);
+        savedProductId = response.data.id;
         showMessage('Đã thêm sản phẩm.');
+      }
+      if (savedProductId && productGalleryDraft.length > 0) {
+        await Promise.all(productGalleryDraft.map((imageUrl, index) => adminApi.addProductImage(savedProductId, { image_url: imageUrl, sort_order: index })));
+        setProductImages((prev) => ({
+          ...prev,
+          [savedProductId]: [
+            ...(prev[savedProductId] || []),
+            ...productGalleryDraft.map((imageUrl, index) => ({ id: -Date.now() - index, product_id: savedProductId, image_url: imageUrl, sort_order: index })),
+          ],
+        }));
+      }
+      if (savedProductId && productSaleForm.discount_percent > 0 && productSaleForm.start_time && productSaleForm.end_time) {
+        await adminApi.createProductDiscount(savedProductId, {
+          discount_percent: Number(productSaleForm.discount_percent),
+          start_time: productSaleForm.start_time,
+          end_time: productSaleForm.end_time,
+          is_active: productSaleForm.is_active,
+        });
       }
       resetProductForm();
       await loadAdminData();
@@ -755,6 +892,11 @@ export function AdminOverviewPage() {
         slug: articleForm.slug || slugify(articleForm.title),
         content: articleForm.content,
         image_url: articleForm.image_url || null,
+        focus_keyword: articleForm.focus_keyword || null,
+        seo_title: articleForm.seo_title || null,
+        seo_description: articleForm.seo_description || null,
+        canonical_url: articleForm.canonical_url || null,
+        og_image_url: articleForm.og_image_url || null,
         category_id: Number(articleForm.category_id),
         is_published: articleForm.is_published,
       };
@@ -1090,9 +1232,8 @@ export function AdminOverviewPage() {
             {notifications.slice(0, 5).map((notification) => (
               <button
                 key={notification.id}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
-                  notification.is_read ? 'border-stone-100 bg-stone-50/80' : 'border-amber-200 bg-amber-50/80'
-                }`}
+                className={`w-full rounded-2xl border p-4 text-left transition ${notification.is_read ? 'border-stone-100 bg-stone-50/80' : 'border-amber-200 bg-amber-50/80'
+                  }`}
                 onClick={() => void markNotificationRead(notification.id)}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -1131,9 +1272,25 @@ export function AdminOverviewPage() {
     );
   }
 
+  const adminTabs: [AdminTab, string][] = [
+    ['dashboard', t('admin.mobile_overview')],
+    ['users', t('admin.mobile_users')],
+    ['brands', t('admin.mobile_brands')],
+    ['categories', t('admin.mobile_categories')],
+    ['products', t('admin.mobile_products')],
+    ['orders', t('admin.mobile_orders')],
+    ['discounts', t('admin.mobile_discounts')],
+    ['pricing', t('admin.mobile_pricing')],
+    ['chatbot', t('admin.mobile_chatbot')],
+    ['blogCategories', t('admin.mobile_blog_categories')],
+    ['articles', t('admin.mobile_articles')],
+    ['banners', t('admin.mobile_banners')],
+    ['combos', t('admin.mobile_combos')],
+  ];
+
   return (
     <div className="min-h-screen bg-[#f7f3ea] text-stone-900">
-      <div className="mx-auto flex max-w-[1680px] gap-5 px-4 py-5 lg:px-6">
+      <div className="mx-auto flex max-w-[1680px] gap-5 px-2 py-2 sm:px-4 sm:py-4 lg:px-6">
         <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-72 shrink-0 flex-col overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/88 p-5 text-stone-900 shadow-[0_24px_70px_rgba(97,75,38,0.12)] backdrop-blur-xl lg:flex">
           <div className="mb-5 shrink-0">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#a68146]">TMC Admin</p>
@@ -1158,9 +1315,8 @@ export function AdminOverviewPage() {
             ].map(([key, label]) => (
               <button
                 key={key}
-                className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  activeTab === key ? 'bg-[#163126] text-white shadow-[0_12px_25px_rgba(22,49,38,0.18)]' : 'text-stone-700 hover:bg-stone-50'
-                }`}
+                className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${activeTab === key ? 'bg-[#163126] text-white shadow-[0_12px_25px_rgba(22,49,38,0.18)]' : 'text-stone-700 hover:bg-stone-50'
+                  }`}
                 onClick={() => selectTab(key as AdminTab)}
               >
                 {label}
@@ -1177,14 +1333,14 @@ export function AdminOverviewPage() {
           </div>
         </aside>
 
-        <main className="flex-1">
-          <div className="rounded-[1.75rem] border border-white/80 bg-white/82 p-4 shadow-[0_24px_80px_rgba(97,75,38,0.1)] backdrop-blur md:p-6">
-            <div className="relative mb-6 overflow-hidden rounded-[1.5rem] border border-stone-100 bg-[linear-gradient(135deg,#fffaf2_0%,#f5ead7_100%)] p-5 text-stone-900 shadow-[0_18px_45px_rgba(119,91,43,0.12)] md:p-7">
+        <main className="min-w-0 flex-1">
+          <div className="rounded-2xl border border-white/80 bg-white/82 p-3 shadow-[0_24px_80px_rgba(97,75,38,0.1)] backdrop-blur sm:rounded-[1.75rem] sm:p-4 md:p-6">
+            <div className="relative mb-4 overflow-hidden rounded-2xl border border-stone-100 bg-[linear-gradient(135deg,#fffaf2_0%,#f5ead7_100%)] p-4 text-stone-900 shadow-[0_18px_45px_rgba(119,91,43,0.12)] sm:mb-6 sm:rounded-[1.5rem] sm:p-5 md:p-7">
               <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#a68146]">Luxury Admin Console</p>
-                  <h2 className="mt-3 text-3xl font-bold leading-tight md:text-4xl">Dashboard quản trị sang hơn, mượt hơn</h2>
-                  <p className="mt-3 max-w-2xl leading-6 text-stone-600">
+                  <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">Dashboard quản trị sang hơn, mượt hơn</h2>
+                  <p className="mt-3 hidden max-w-2xl leading-6 text-stone-600 sm:block">
                     Quản lý đầy đủ CRUD, theo dõi đơn hàng realtime, nhận thông báo ngay khi có đơn mới và cập nhật trạng thái cho khách hàng.
                   </p>
                 </div>
@@ -1201,50 +1357,35 @@ export function AdminOverviewPage() {
               </div>
             </div>
 
-            <div className="mb-5 flex flex-col gap-4 border-b border-stone-100 pb-5 md:flex-row md:items-center md:justify-between">
+            <div className="mb-4 flex flex-col gap-4 border-b border-stone-100 pb-4 md:mb-5 md:flex-row md:items-center md:justify-between md:pb-5">
               <div>
                 <h2 className="text-2xl font-bold text-stone-900 md:text-3xl">{t('admin.title')}</h2>
                 <p className="mt-1 text-stone-500">{t('admin.desc')}</p>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <button className="rounded-2xl border border-stone-200 bg-white px-4 py-2 font-semibold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50" onClick={() => void loadAdminData()}>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+                <button className="rounded-2xl border border-stone-200 bg-white px-4 py-2 font-semibold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50" onClick={() => void loadAdminData()} type="button">
                   {t('admin.reload')}
                 </button>
-                <button className="rounded-2xl bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] px-4 py-2 font-semibold text-white transition hover:brightness-105" onClick={() => void markAllNotificationsRead()}>
+                <button className="rounded-2xl bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] px-4 py-2 font-semibold text-white transition hover:brightness-105" onClick={() => void markAllNotificationsRead()} type="button">
                   {t('admin.read_all')}
                 </button>
-                <Link className="rounded-2xl border border-stone-200 bg-white px-4 py-2 font-semibold text-stone-700 lg:hidden" to="#" onClick={() => selectTab('dashboard')}>
+                <Link className="col-span-2 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-center font-semibold text-stone-700 lg:hidden" to="#" onClick={() => selectTab('dashboard')}>
                   {t('admin.overview')}
                 </Link>
               </div>
             </div>
 
-            <div className="mb-6 flex flex-wrap gap-2 lg:hidden">
-              {[
-                ['dashboard', t('admin.mobile_overview')],
-                ['users', t('admin.mobile_users')],
-                ['brands', t('admin.mobile_brands')],
-                ['categories', t('admin.mobile_categories')],
-                ['products', t('admin.mobile_products')],
-                ['orders', t('admin.mobile_orders')],
-                ['discounts', t('admin.mobile_discounts')],
-                ['pricing', t('admin.mobile_pricing')],
-                ['chatbot', t('admin.mobile_chatbot')],
-                ['blogCategories', t('admin.mobile_blog_categories')],
-                ['articles', t('admin.mobile_articles')],
-                ['banners', t('admin.mobile_banners')],
-                ['combos', t('admin.mobile_combos')],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  className={`rounded-2xl px-4 py-2 text-sm font-semibold ${
-                    activeTab === key ? 'bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] text-white' : 'bg-white text-stone-700'
-                  }`}
-                  onClick={() => selectTab(key as AdminTab)}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="sticky top-0 z-30 mb-5 rounded-2xl border border-stone-100 bg-white/95 p-3 shadow-[0_12px_30px_rgba(97,75,38,0.08)] backdrop-blur lg:hidden">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Mục quản trị</label>
+              <select
+                className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-800 outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                value={activeTab}
+                onChange={(event) => selectTab(event.target.value as AdminTab)}
+              >
+                {adminTabs.map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
             </div>
 
             {error ? <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
@@ -1265,6 +1406,7 @@ export function AdminOverviewPage() {
                   <ActionRow saving={saving} onReset={resetUserForm} submitLabel={userForm.id ? 'Cập nhật user' : 'Thêm user'} />
                 </form>
 
+                <AdminPager total={users.length} page={adminPage('users')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('users', page)} label="user" />
                 <Table>
                   <thead>
                     <tr>
@@ -1276,7 +1418,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {pagedUsers.map((user) => (
                       <tr key={user.id} className="border-t border-stone-100">
                         <Td>{user.full_name}</Td>
                         <Td>{user.email}</Td>
@@ -1311,6 +1453,7 @@ export function AdminOverviewPage() {
                   <ActionRow saving={saving} onReset={resetBrandForm} submitLabel={brandForm.id ? 'Cập nhật thương hiệu' : 'Thêm thương hiệu'} />
                 </form>
 
+                <AdminPager total={brands.length} page={brandPage} pageSize={ADMIN_PAGE_SIZE} onPageChange={setBrandPage} label="thương hiệu" />
                 <Table>
                   <thead>
                     <tr>
@@ -1320,9 +1463,9 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {brands.map((brand) => (
+                    {pagedBrands.map((brand) => (
                       <tr key={brand.id} className="border-t border-stone-100">
-                        <Td>{brand.logo_url ? <img src={assetUrl(brand.logo_url)} alt={brand.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{brand.logo_url ? <img src={assetUrl(brand.logo_url)} alt={brand.name} className="h-12 w-12 rounded-xl object-cover" loading="lazy" decoding="async" /> : 'Không có'}</Td>
                         <Td>{brand.name}</Td>
                         <Td>
                           <RowActions
@@ -1369,6 +1512,7 @@ export function AdminOverviewPage() {
                   <ActionRow saving={saving} onReset={resetCategoryForm} submitLabel={categoryForm.id ? 'Cập nhật danh mục' : 'Thêm danh mục'} />
                 </form>
 
+                <AdminPager total={categories.length} page={adminPage('categories')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('categories', page)} label="danh mục" />
                 <Table>
                   <thead>
                     <tr>
@@ -1380,9 +1524,9 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {categories.map((category) => (
+                    {pagedCategories.map((category) => (
                       <tr key={category.id} className="border-t border-stone-100">
-                        <Td>{category.image_url ? <img src={assetUrl(category.image_url)} alt={category.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{category.image_url ? <img src={assetUrl(category.image_url)} alt={category.name} className="h-12 w-12 rounded-xl object-cover" loading="lazy" decoding="async" /> : 'Không có'}</Td>
                         <Td>{category.name}</Td>
                         <Td>{category.parent_id ? categories.find((item) => item.id === category.parent_id)?.name || 'Danh mục con' : 'Danh mục chính'}</Td>
                         <Td>{category.slug}</Td>
@@ -1403,8 +1547,14 @@ export function AdminOverviewPage() {
               <AdminSection title="Quản lý sản phẩm">
                 <form className="space-y-4" onSubmit={(event) => void handleProductSubmit(event)}>
                   <div className="grid gap-4 md:grid-cols-2">
+                    <FormInput label="Mã sản phẩm" value={productForm.product_code} onChange={(value) => setProductForm((prev) => ({ ...prev, product_code: value }))} />
                     <FormInput label="Tên sản phẩm" value={productForm.name} onChange={(value) => setProductForm((prev) => ({ ...prev, name: value }))} />
-                    <FormInput label="Badge" value={productForm.badge} onChange={(value) => setProductForm((prev) => ({ ...prev, badge: value }))} />
+                    <FormSelect
+                      label="Nhóm hiển thị"
+                      value={productForm.badge}
+                      onChange={(value) => setProductForm((prev) => ({ ...prev, badge: value }))}
+                      options={[['', 'Không gắn nhóm'], ['NEW IN', 'Sản phẩm mới'], ['BEST SELLER', 'Sản phẩm bán chạy'], ['SALE', 'Sản phẩm sale / Flash sale']]}
+                    />
                     <FormSelect
                       label="Danh mục"
                       value={String(productForm.category_id)}
@@ -1419,7 +1569,7 @@ export function AdminOverviewPage() {
                     />
                     <FormInput label="Giá lẻ" type="number" value={String(productForm.retail_price)} onChange={(value) => setProductForm((prev) => ({ ...prev, retail_price: Number(value) }))} />
                     <FormInput label="Giá sỉ" type="number" value={String(productForm.wholesale_price)} onChange={(value) => setProductForm((prev) => ({ ...prev, wholesale_price: Number(value) }))} />
-                    <FormInput label="Tồn kho" type="number" value={String(productForm.stock)} onChange={(value) => setProductForm((prev) => ({ ...prev, stock: Number(value) }))} />
+                    <FormInput label="Tồn kho chung" type="number" value={String(productVariantRows.length ? variantStockTotal : productForm.stock)} onChange={(value) => setProductForm((prev) => ({ ...prev, stock: Number(value) }))} />
                     <FormSelect
                       label="Trạng thái"
                       value={String(productForm.is_active)}
@@ -1433,22 +1583,197 @@ export function AdminOverviewPage() {
                     value={productForm.description}
                     onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
                   />
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">Biến thể / màu sắc</label>
-                    <p className="mt-1 text-xs text-stone-400">Mỗi dòng: Tên màu | URL ảnh | tồn kho. Ví dụ: MJ01 | /uploads/mj01.png | 20</p>
-                    <textarea
-                      className="mt-2 min-h-28 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                      value={productForm.variant_options}
-                      onChange={(event) => setProductForm((prev) => ({ ...prev, variant_options: event.target.value }))}
-                    />
+                  <div className="rounded-2xl border border-red-100 bg-red-50/40 p-4">
+                    <div className="mb-4">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-red-700">Giá khuyến mãi theo lịch</h4>
+                      <p className="mt-1 text-xs text-red-500">Nhập % và thời gian để sản phẩm tự hiện giá sale, đồng hồ và Flash sale.</p>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <FormInput label="Giảm (%)" type="number" value={String(productSaleForm.discount_percent)} onChange={(value) => setProductSaleForm((prev) => ({ ...prev, discount_percent: Number(value) }))} />
+                      <FormInput label="Ngày giờ bắt đầu" type="datetime-local" value={productSaleForm.start_time} onChange={(value) => setProductSaleForm((prev) => ({ ...prev, start_time: value }))} />
+                      <FormInput label="Ngày giờ kết thúc" type="datetime-local" value={productSaleForm.end_time} onChange={(value) => setProductSaleForm((prev) => ({ ...prev, end_time: value }))} />
+                      <FormSelect
+                        label="Trạng thái sale"
+                        value={String(productSaleForm.is_active)}
+                        onChange={(value) => setProductSaleForm((prev) => ({ ...prev, is_active: value === 'true' }))}
+                        options={[['true', 'Kích hoạt'], ['false', 'Tắt']]}
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">Mã sản phẩm / size / màu</label>
+                        <p className="mt-1 text-xs text-stone-400">Thêm nhiều mã như MJ01, MJ02, size S/M/L. Mỗi mã có ảnh và tồn kho riêng.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-xl bg-emerald-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-900"
+                        onClick={addProductVariant}
+                      >
+                        + Thêm mã
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {productVariantRows.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-5 text-sm text-stone-500">
+                          Chưa có mã sản phẩm. Bấm “Thêm mã” để tạo lựa chọn cho khách.
+                        </div>
+                      ) : null}
+                      {productVariantRows.map((variant, index) => (
+                        <div key={`variant-${index}`} className="grid gap-3 rounded-2xl border border-stone-200 bg-[#fffdf8] p-3 lg:grid-cols-4">
+                          <FormInput
+                            label={`Mã sản phẩm #${index + 1}`}
+                            value={variant.code}
+                            onChange={(value) => updateProductVariant(index, { code: value })}
+                          />
+                          <FormInput
+                            label="Tên / size / màu"
+                            value={variant.name}
+                            onChange={(value) => updateProductVariant(index, { name: value })}
+                          />
+                          <FormInput
+                            label="Giá lẻ riêng"
+                            type="number"
+                            value={String(variant.retail_price ?? productForm.retail_price)}
+                            onChange={(value) => updateProductVariant(index, { retail_price: Number(value) })}
+                          />
+                          <FormInput
+                            label="Giá sỉ riêng"
+                            type="number"
+                            value={String(variant.wholesale_price ?? productForm.wholesale_price)}
+                            onChange={(value) => updateProductVariant(index, { wholesale_price: Number(value) })}
+                          />
+                          <FormInput
+                            label="Tồn kho"
+                            type="number"
+                            value={String(variant.stock ?? 0)}
+                            onChange={(value) => updateProductVariant(index, { stock: Number(value) })}
+                          />
+                          <FormInput
+                            label="Giảm riêng (%)"
+                            type="number"
+                            value={String(variant.discount_percent ?? 0)}
+                            onChange={(value) => updateProductVariant(index, { discount_percent: Number(value) })}
+                          />
+                          <FormInput
+                            label="Bắt đầu giảm"
+                            type="datetime-local"
+                            value={variant.discount_start_time || ''}
+                            onChange={(value) => updateProductVariant(index, { discount_start_time: value })}
+                          />
+                          <FormInput
+                            label="Kết thúc giảm"
+                            type="datetime-local"
+                            value={variant.discount_end_time || ''}
+                            onChange={(value) => updateProductVariant(index, { discount_end_time: value })}
+                          />
+                          <div className="space-y-2 lg:col-span-3">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">Ảnh riêng cho mã</label>
+                            <input
+                              className="w-full rounded-xl border border-stone-200 bg-white/90 px-4 py-3 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                              value={variant.image_url || ''}
+                              onChange={(event) => updateProductVariant(index, { image_url: event.target.value })}
+                              placeholder="/uploads/mj01.png hoặc https://..."
+                            />
+                          </div>
+                          <div className="flex items-end gap-2">
+                            <label className="inline-flex h-12 flex-1 cursor-pointer items-center justify-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-bold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50">
+                              <input
+                                className="hidden"
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  if (!file) return;
+                                  void uploadImageToField(`variant-${index}`, file, (url) => updateProductVariant(index, { image_url: url }));
+                                  event.target.value = '';
+                                }}
+                              />
+                              {uploadingKey === `variant-${index}` ? 'Đang up...' : 'Upload'}
+                            </label>
+                            <button
+                              type="button"
+                              className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                              onClick={() => removeProductVariant(index)}
+                              aria-label="Xóa mã sản phẩm"
+                            >
+                              <span className="material-symbols-outlined">delete</span>
+                            </button>
+                          </div>
+                          <div className="lg:col-span-4">
+                            {variant.image_url ? (
+                              <img src={assetUrl(variant.image_url)} alt={variant.name || 'Mã sản phẩm'} className="h-20 w-20 rounded-xl border border-stone-200 object-cover" loading="lazy" decoding="async" />
+                            ) : (
+                              <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-stone-300 bg-white text-xs text-stone-400">Ảnh mã</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <ImageField
-                    label="Ảnh sản phẩm"
+                    label="Ảnh đại diện sản phẩm"
                     value={productForm.image_url}
                     onChange={(value) => setProductForm((prev) => ({ ...prev, image_url: value }))}
                     uploading={uploadingKey === 'product'}
                     onUpload={(file) => uploadImageToField('product', file, (url) => setProductForm((prev) => ({ ...prev, image_url: url })))}
                   />
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold uppercase tracking-wider text-stone-700">Ảnh gallery sản phẩm</h4>
+                        <p className="mt-1 text-xs text-stone-400">Thêm nhiều ảnh tổng quan cho sản phẩm. Có thể upload trước khi lưu sản phẩm.</p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50">
+                        <input
+                          className="hidden"
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            void uploadImageToField('product-gallery', file, addDraftGalleryImage);
+                            event.target.value = '';
+                          }}
+                        />
+                        {uploadingKey === 'product-gallery' ? 'Đang upload...' : 'Upload ảnh gallery'}
+                      </label>
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <input
+                        className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2 outline-none focus:border-amber-400"
+                        placeholder="Dán URL ảnh gallery..."
+                        value={galleryUrlInput}
+                        onChange={(event) => setGalleryUrlInput(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="rounded-xl bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800 transition hover:bg-amber-200"
+                        onClick={() => addDraftGalleryImage(galleryUrlInput)}
+                      >
+                        + Thêm
+                      </button>
+                    </div>
+                    {productGalleryDraft.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {productGalleryDraft.map((imageUrl, index) => (
+                          <div key={`${imageUrl}-${index}`} className="relative h-24 w-24 overflow-hidden rounded-xl border border-stone-200">
+                            <img src={assetUrl(imageUrl)} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                            <button
+                              type="button"
+                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs text-white"
+                              onClick={() => removeDraftGalleryImage(index)}
+                              aria-label="Xóa ảnh gallery"
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <ActionRow saving={saving} onReset={resetProductForm} submitLabel={productForm.id ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm'} />
                 </form>
 
@@ -1458,7 +1783,7 @@ export function AdminOverviewPage() {
                     <div className="flex flex-wrap gap-3 mb-4">
                       {(productImages[productForm.id] || []).map((img) => (
                         <div key={img.id} className="relative h-24 w-24 overflow-hidden rounded-xl border border-stone-200">
-                          <img src={assetUrl(img.image_url)} alt="" className="h-full w-full object-cover" />
+                          <img src={assetUrl(img.image_url)} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                           <button
                             className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
                             onClick={() => void withSaving(async () => {
@@ -1497,6 +1822,7 @@ export function AdminOverviewPage() {
                   </div>
                 ) : null}
 
+                <AdminPager total={products.length} page={productPage} pageSize={ADMIN_PAGE_SIZE} onPageChange={setProductPage} label="sản phẩm" />
                 <Table>
                   <thead>
                     <tr>
@@ -1511,12 +1837,12 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {products.map((product) => (
+                    {pagedProducts.map((product) => (
                       <tr key={product.id} className="border-t border-stone-100">
-                        <Td>{product.image_url ? <img src={assetUrl(product.image_url)} alt={product.name} className="h-12 w-12 rounded-xl object-cover" /> : 'Không có'}</Td>
+                        <Td>{product.image_url ? <img src={assetUrl(product.image_url)} alt={product.name} className="h-12 w-12 rounded-xl object-cover" loading="lazy" decoding="async" /> : 'Không có'}</Td>
                         <Td>
                           <div className="font-semibold text-stone-800">{product.name}</div>
-                          <div className="text-xs text-stone-500">{product.category?.name}</div>
+                          <div className="text-xs text-stone-500">{product.product_code ? `Mã ${product.product_code} • ` : ''}{product.category?.name}</div>
                         </Td>
                         <Td>{product.brand?.name || 'Chưa chọn hãng'}</Td>
                         <Td>{currency(product.retail_price)}</Td>
@@ -1525,9 +1851,19 @@ export function AdminOverviewPage() {
                         <Td>{product.stock}</Td>
                         <Td>
                           <RowActions
-                            onEdit={() =>
+                            onEdit={() => {
+                              setProductVariantRows(parseVariantOptions(product.variant_options));
+                              setProductGalleryDraft([]);
+                              setGalleryUrlInput('');
+                              setProductSaleForm(product.discount ? {
+                                discount_percent: product.discount.discount_percent,
+                                start_time: product.discount.start_time ? product.discount.start_time.slice(0, 16) : '',
+                                end_time: product.discount.end_time ? product.discount.end_time.slice(0, 16) : '',
+                                is_active: product.discount.is_active,
+                              } : { discount_percent: 0, start_time: '', end_time: '', is_active: true });
                               setProductForm({
                                 id: product.id,
+                                product_code: product.product_code || '',
                                 name: product.name,
                                 description: product.description || '',
                                 image_url: product.image_url || '',
@@ -1535,12 +1871,12 @@ export function AdminOverviewPage() {
                                 brand_id: product.brand_id || 0,
                                 retail_price: product.retail_price,
                                 wholesale_price: product.wholesale_price || 0,
-                                variant_options: variantOptionsToText(product.variant_options),
+                                variant_options: product.variant_options || '',
                                 badge: product.badge || '',
                                 stock: product.stock,
                                 is_active: product.is_active,
-                              })
-                            }
+                              });
+                            }}
                             onDelete={() => void handleDelete(`sản phẩm ${product.name}`, () => adminApi.deleteProduct(product.id))}
                           />
                         </Td>
@@ -1561,6 +1897,7 @@ export function AdminOverviewPage() {
                   <MetricTile label="SePay đã trả" value={String(orders.filter((order) => order.payment_method === 'sepay' && order.payment_status === 'paid').length)} tone="emerald" />
                   <MetricTile label="SePay chờ" value={String(orders.filter((order) => order.payment_method === 'sepay' && order.payment_status !== 'paid').length)} tone="amber" />
                 </div>
+                <AdminPager total={orders.length} page={adminPage('orders')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('orders', page)} label="đơn hàng" />
                 <Table>
                   <thead>
                     <tr>
@@ -1575,7 +1912,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order) => (
+                    {pagedOrders.map((order) => (
                       <tr key={order.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">#{order.id}</div>
@@ -1671,6 +2008,7 @@ export function AdminOverviewPage() {
                       Làm mới
                     </button>
                   </div>
+                  <AdminPager total={sepayLogs.length} page={adminPage('sepayLogs')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('sepayLogs', page)} label="log SePay" />
                   <Table>
                     <thead>
                       <tr>
@@ -1682,7 +2020,7 @@ export function AdminOverviewPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sepayLogs.length ? sepayLogs.slice(0, 12).map((log) => (
+                      {sepayLogs.length ? pagedSePayLogs.map((log) => (
                         <tr key={log.id} className="border-t border-stone-100">
                           <Td>{formatDate(log.created_at)}</Td>
                           <Td>
@@ -1695,13 +2033,12 @@ export function AdminOverviewPage() {
                             <div className="text-xs text-stone-500">{log.reference_code || 'Không có reference'}</div>
                           </Td>
                           <Td>
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                              log.status === 'processed'
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${log.status === 'processed'
                                 ? 'bg-emerald-100 text-emerald-700'
                                 : log.status === 'rejected'
                                   ? 'bg-rose-100 text-rose-700'
                                   : 'bg-stone-100 text-stone-700'
-                            }`}>
+                              }`}>
                               {log.status}
                             </span>
                             <div className="mt-1 text-xs text-stone-500">{log.message || 'Không có ghi chú'}</div>
@@ -1788,6 +2125,7 @@ export function AdminOverviewPage() {
                     <ActionRow saving={saving} onReset={resetDiscountForm} submitLabel={discountForm.id ? 'Cập nhật mã giảm' : 'Thêm mã giảm'} />
                   </form>
 
+                  <AdminPager total={discountCodes.length} page={adminPage('discountCodes')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('discountCodes', page)} label="mã giảm giá" />
                   <Table>
                     <thead>
                       <tr>
@@ -1800,7 +2138,7 @@ export function AdminOverviewPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {discountCodes.map((code) => (
+                      {pagedDiscountCodes.map((code) => (
                         <tr key={code.id} className="border-t border-stone-100">
                           <Td>{code.code}</Td>
                           <Td>{code.discount_type}</Td>
@@ -1895,47 +2233,50 @@ export function AdminOverviewPage() {
                   </form>
 
                   {productDiscounts.length > 0 ? (
-                    <Table>
-                      <thead>
-                        <tr>
-                          <Th>San pham</Th>
-                          <Th>Giam</Th>
-                          <Th>Bat dau</Th>
-                          <Th>Ket thuc</Th>
-                          <Th>Trang thai</Th>
-                          <Th></Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {productDiscounts.map((pd) => {
-                          const prod = products.find((p) => p.id === pd.product_id);
-                          return (
-                            <tr key={pd.id} className="border-t border-stone-100">
-                              <Td>{prod ? `#${prod.id} ${prod.name}` : `Product #${pd.product_id}`}</Td>
-                              <Td className="font-bold text-red-600">{pd.discount_percent}%</Td>
-                              <Td>{formatDate(pd.start_time)}</Td>
-                              <Td>{formatDate(pd.end_time)}</Td>
-                              <Td>{pd.is_active ? 'Kich hoat' : 'Tat'}</Td>
-                              <Td>
-                                <RowActions
-                                  onEdit={() => {
-                                    setProductDiscountForm({
-                                      productId: pd.product_id,
-                                      id: pd.id,
-                                      discount_percent: pd.discount_percent,
-                                      start_time: pd.start_time ? pd.start_time.slice(0, 16) : '',
-                                      end_time: pd.end_time ? pd.end_time.slice(0, 16) : '',
-                                      is_active: pd.is_active,
-                                    });
-                                  }}
-                                  onDelete={() => void handleDelete(`giam gia san pham #${pd.product_id}`, () => adminApi.deleteProductDiscount(pd.product_id))}
-                                />
-                              </Td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
+                    <>
+                      <AdminPager total={productDiscounts.length} page={adminPage('productDiscounts')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('productDiscounts', page)} label="sale sản phẩm" />
+                      <Table>
+                        <thead>
+                          <tr>
+                            <Th>San pham</Th>
+                            <Th>Giam</Th>
+                            <Th>Bat dau</Th>
+                            <Th>Ket thuc</Th>
+                            <Th>Trang thai</Th>
+                            <Th></Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pagedProductDiscounts.map((pd) => {
+                            const prod = products.find((p) => p.id === pd.product_id);
+                            return (
+                              <tr key={pd.id} className="border-t border-stone-100">
+                                <Td>{prod ? `#${prod.id} ${prod.name}` : `Product #${pd.product_id}`}</Td>
+                                <Td className="font-bold text-red-600">{pd.discount_percent}%</Td>
+                                <Td>{formatDate(pd.start_time)}</Td>
+                                <Td>{formatDate(pd.end_time)}</Td>
+                                <Td>{pd.is_active ? 'Kich hoat' : 'Tat'}</Td>
+                                <Td>
+                                  <RowActions
+                                    onEdit={() => {
+                                      setProductDiscountForm({
+                                        productId: pd.product_id,
+                                        id: pd.id,
+                                        discount_percent: pd.discount_percent,
+                                        start_time: pd.start_time ? pd.start_time.slice(0, 16) : '',
+                                        end_time: pd.end_time ? pd.end_time.slice(0, 16) : '',
+                                        is_active: pd.is_active,
+                                      });
+                                    }}
+                                    onDelete={() => void handleDelete(`giam gia san pham #${pd.product_id}`, () => adminApi.deleteProductDiscount(pd.product_id))}
+                                  />
+                                </Td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    </>
                   ) : (
                     <p className="text-sm text-stone-500">Chua co san pham nao duoc giam gia.</p>
                   )}
@@ -2011,6 +2352,7 @@ export function AdminOverviewPage() {
                   </section>
                 </div>
 
+                <AdminPager total={pricingTiers.length} page={adminPage('pricingTiers')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('pricingTiers', page)} label="mốc giá" />
                 <Table>
                   <thead>
                     <tr>
@@ -2023,7 +2365,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pricingTiers.map((tier) => (
+                    {pagedPricingTiers.map((tier) => (
                       <tr key={tier.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">{tier.name}</div>
@@ -2076,6 +2418,7 @@ export function AdminOverviewPage() {
                   </form>
                 </section>
 
+                <AdminPager total={wholesaleTiers.length} page={adminPage('wholesaleTiers')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('wholesaleTiers', page)} label="mức giá sỉ" />
                 <Table>
                   <thead>
                     <tr>
@@ -2088,7 +2431,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {wholesaleTiers.map((tier) => (
+                    {pagedWholesaleTiers.map((tier) => (
                       <tr key={tier.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">{tier.name}</div>
@@ -2165,6 +2508,7 @@ export function AdminOverviewPage() {
                   </section>
                 </div>
 
+                <AdminPager total={chatbotKeys.length} page={adminPage('chatbotKeys')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('chatbotKeys', page)} label="cấu hình chatbot" />
                 <Table>
                   <thead>
                     <tr>
@@ -2177,7 +2521,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {chatbotKeys.map((key) => (
+                    {pagedChatbotKeys.map((key) => (
                       <tr key={key.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">{key.name}</div>
@@ -2241,6 +2585,7 @@ export function AdminOverviewPage() {
                   <ActionRow saving={saving} onReset={resetBlogCategoryForm} submitLabel={blogCategoryForm.id ? 'Cập nhật danh mục bài viết' : 'Thêm danh mục bài viết'} />
                 </form>
 
+                <AdminPager total={blogCategories.length} page={adminPage('blogCategories')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('blogCategories', page)} label="danh mục bài viết" />
                 <Table>
                   <thead>
                     <tr>
@@ -2251,7 +2596,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {blogCategories.map((category) => (
+                    {pagedBlogCategories.map((category) => (
                       <tr key={category.id} className="border-t border-stone-100">
                         <Td>{category.name}</Td>
                         <Td>{category.slug}</Td>
@@ -2299,19 +2644,66 @@ export function AdminOverviewPage() {
                     uploading={uploadingKey === 'article'}
                     onUpload={(file) => uploadImageToField('article', file, (url) => setArticleForm((prev) => ({ ...prev, image_url: url })))}
                   />
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-emerald-950">SEO bài viết</p>
+                        <p className="mt-1 text-xs text-emerald-800">Nhập giống Rank Math: từ khóa chính, title, mô tả và ảnh chia sẻ.</p>
+                      </div>
+                      <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+                        Title {articleForm.seo_title.length || articleForm.title.length}/60 - Mô tả {articleForm.seo_description.length}/160
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <FormInput
+                        label="Từ khóa chính"
+                        value={articleForm.focus_keyword}
+                        onChange={(value) => setArticleForm((prev) => ({ ...prev, focus_keyword: value }))}
+                      />
+                      <FormInput
+                        label="SEO title"
+                        value={articleForm.seo_title}
+                        onChange={(value) => setArticleForm((prev) => ({ ...prev, seo_title: value }))}
+                      />
+                      <FormInput
+                        label="Canonical URL"
+                        value={articleForm.canonical_url}
+                        onChange={(value) => setArticleForm((prev) => ({ ...prev, canonical_url: value }))}
+                      />
+                      <FormInput
+                        label="Ảnh social"
+                        value={articleForm.og_image_url}
+                        onChange={(value) => setArticleForm((prev) => ({ ...prev, og_image_url: value }))}
+                      />
+                    </div>
+                    <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-wider text-stone-500">Meta description</label>
+                    <textarea
+                      className="min-h-[96px] w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                      value={articleForm.seo_description}
+                      onChange={(event) => setArticleForm((prev) => ({ ...prev, seo_description: event.target.value }))}
+                    />
+                    <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4">
+                      <p className="text-[15px] font-semibold text-blue-700">{articleForm.seo_title || articleForm.title || 'Tiêu đề SEO sẽ hiện ở đây'}</p>
+                      <p className="mt-1 text-xs text-emerald-700">https://giangtmc.io.vn/blog/{articleForm.slug || 'slug-bai-viet'}</p>
+                      <p className="mt-2 text-sm text-stone-600">{articleForm.seo_description || 'Meta description nên có từ khóa chính và dài khoảng 120-160 ký tự.'}</p>
+                    </div>
+                  </div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Nội dung</label>
-                  <RichTextEditor
-                    value={articleForm.content}
-                    onChange={(html) => setArticleForm((prev) => ({ ...prev, content: html }))}
-                    onImageUpload={(file) =>
-                      new Promise<string>((resolve, reject) => {
-                        uploadApi.image(file).then((res) => resolve(res.data.url)).catch(reject);
-                      })
-                    }
-                  />
+                  <Suspense fallback={<div className="rounded-2xl border border-stone-200 bg-white px-4 py-6 text-sm text-stone-500">Đang tải trình soạn thảo...</div>}>
+                    <RichTextEditor
+                      value={articleForm.content}
+                      onChange={(html) => setArticleForm((prev) => ({ ...prev, content: html }))}
+                      onImageUpload={(file) =>
+                        new Promise<string>((resolve, reject) => {
+                          uploadApi.image(file).then((res) => resolve(res.data.url)).catch(reject);
+                        })
+                      }
+                    />
+                  </Suspense>
                   <ActionRow saving={saving} onReset={resetArticleForm} submitLabel={articleForm.id ? 'Cập nhật bài viết' : 'Thêm bài viết'} />
                 </form>
 
+                <AdminPager total={articles.length} page={adminPage('articles')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('articles', page)} label="bài viết" />
                 <Table>
                   <thead>
                     <tr>
@@ -2323,11 +2715,12 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {articles.map((article) => (
+                    {pagedArticles.map((article) => (
                       <tr key={article.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">{article.title}</div>
                           <div className="text-xs text-stone-500">{article.slug}</div>
+                          {article.focus_keyword ? <div className="mt-1 text-xs font-semibold text-emerald-700">SEO: {article.focus_keyword}</div> : null}
                         </Td>
                         <Td>{article.category?.name}</Td>
                         <Td>{article.author?.full_name || article.author?.email}</Td>
@@ -2341,6 +2734,11 @@ export function AdminOverviewPage() {
                                 slug: article.slug,
                                 content: article.content,
                                 image_url: article.image_url || '',
+                                focus_keyword: article.focus_keyword || '',
+                                seo_title: article.seo_title || '',
+                                seo_description: article.seo_description || '',
+                                canonical_url: article.canonical_url || '',
+                                og_image_url: article.og_image_url || '',
                                 category_id: article.category_id,
                                 is_published: article.is_published,
                               })
@@ -2385,6 +2783,7 @@ export function AdminOverviewPage() {
                   <ActionRow saving={saving} onReset={resetBannerForm} submitLabel={bannerForm.id ? 'Cập nhật banner' : 'Thêm banner'} />
                 </form>
 
+                <AdminPager total={banners.length} page={adminPage('banners')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('banners', page)} label="banner" />
                 <Table>
                   <thead>
                     <tr>
@@ -2395,7 +2794,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {banners.map((banner) => (
+                    {pagedBanners.map((banner) => (
                       <tr key={banner.id} className="border-t border-stone-100">
                         <Td>
                           <div className="font-semibold text-stone-800">{banner.title}</div>
@@ -2466,7 +2865,7 @@ export function AdminOverviewPage() {
                     <FormInput label="Giảm giá (%)" value={String(comboForm.discount_percent)} onChange={(v) => setComboForm({ ...comboForm, discount_percent: parseInt(v) || 0 })} type="number" />
                   </div>
                   <FormInput label="Mô tả" value={comboForm.description} onChange={(v) => setComboForm({ ...comboForm, description: v })} />
-                  <ImageField label="Ảnh combo" value={comboForm.image_url} onChange={(v) => setComboForm({ ...comboForm, image_url: v })} onUpload={async () => {}} uploading={false} />
+                  <ImageField label="Ảnh combo" value={comboForm.image_url} onChange={(v) => setComboForm({ ...comboForm, image_url: v })} onUpload={async () => { }} uploading={false} />
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
                       <input type="checkbox" checked={comboForm.is_active} onChange={(e) => setComboForm({ ...comboForm, is_active: e.target.checked })} className="rounded" />
@@ -2531,7 +2930,7 @@ export function AdminOverviewPage() {
                     {combos.find((c) => c.id === comboForm.id)?.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 text-sm bg-stone-50 rounded-lg p-3">
                         <div className="w-10 h-10 rounded-lg bg-stone-200 overflow-hidden shrink-0">
-                          {item.product?.image_url ? <img src={assetUrl(item.product.image_url)} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400">TMC</div>}
+                          {item.product?.image_url ? <img src={assetUrl(item.product.image_url)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400">TMC</div>}
                         </div>
                         <span className="flex-1 font-medium">{item.product?.name ?? `SP #${item.product_id}`} × {item.quantity}</span>
                         <button className="text-red-500 text-xs hover:underline" onClick={async () => {
@@ -2547,6 +2946,7 @@ export function AdminOverviewPage() {
                 )}
 
                 {/* Combos table */}
+                <AdminPager total={combos.length} page={adminPage('combos')} pageSize={ADMIN_PAGE_SIZE} onPageChange={(page) => setAdminPage('combos', page)} label="combo" />
                 <Table>
                   <thead>
                     <tr>
@@ -2560,7 +2960,7 @@ export function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {combos.map((combo) => (
+                    {pagedCombos.map((combo) => (
                       <tr key={combo.id} className="border-t border-stone-100">
                         <Td className="font-semibold">{combo.name}</Td>
                         <Td>{combo.items.length} SP</Td>
@@ -2634,7 +3034,7 @@ function AdminSection({ title, children }: { title: string; children: ReactNode 
   return (
     <section className="space-y-6">
       <div>
-        <h3 className="text-2xl font-bold text-stone-900">{title}</h3>
+        <h3 className="text-xl font-bold text-stone-900 sm:text-2xl">{title}</h3>
       </div>
       {children}
     </section>
@@ -2661,7 +3061,7 @@ function MetricTile({ label, value, tone }: { label: string; value: string; tone
   return (
     <div className={`rounded-[1.6rem] border border-white/80 bg-gradient-to-br p-5 shadow-[0_18px_35px_rgba(171,148,100,0.08)] ${toneClasses[tone]}`}>
       <p className="text-xs font-bold uppercase tracking-[0.22em] opacity-70">{label}</p>
-      <p className="mt-3 text-3xl font-bold">{value}</p>
+      <p className="mt-3 break-words text-2xl font-bold sm:text-3xl">{value}</p>
     </div>
   );
 }
@@ -2738,7 +3138,7 @@ function ActionRow({
   submitLabel: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="grid gap-3 sm:flex sm:flex-wrap">
       <button className="rounded-2xl bg-[linear-gradient(135deg,#8b6837_0%,#b48b4a_100%)] px-5 py-3 font-semibold text-white transition hover:brightness-105" disabled={saving} type="submit">
         {submitLabel}
       </button>
@@ -2749,8 +3149,47 @@ function ActionRow({
   );
 }
 
+function AdminPager({
+  total,
+  page,
+  pageSize,
+  label,
+  onPageChange,
+}: {
+  total: number;
+  page: number;
+  pageSize: number;
+  label: string;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const end = Math.min(total, safePage * pageSize);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-100 bg-white px-4 py-3 text-sm text-stone-600">
+      <span>
+        Hiển thị {start}-{end}/{total} {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <button className="rounded-xl border border-stone-200 px-3 py-2 font-semibold disabled:opacity-40" type="button" disabled={safePage <= 1} onClick={() => onPageChange(safePage - 1)}>
+          Trước
+        </button>
+        <span className="font-bold text-stone-900">{safePage}/{totalPages}</span>
+        <button className="rounded-xl border border-stone-200 px-3 py-2 font-semibold disabled:opacity-40" type="button" disabled={safePage >= totalPages} onClick={() => onPageChange(safePage + 1)}>
+          Sau
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Table({ children }: { children: ReactNode }) {
-  return <div className="overflow-hidden rounded-3xl border border-stone-100 bg-white/90 shadow-[0_15px_30px_rgba(177,150,101,0.05)]"><table className="w-full text-left text-sm">{children}</table></div>;
+  return (
+    <div className="w-full overflow-x-auto rounded-2xl border border-stone-100 bg-white/90 shadow-[0_15px_30px_rgba(177,150,101,0.05)] sm:rounded-3xl">
+      <table className="min-w-[760px] w-full text-left text-sm">{children}</table>
+    </div>
+  );
 }
 
 function Th({ children }: { children?: ReactNode }) {
@@ -2763,7 +3202,7 @@ function Td({ children, className = '', colSpan }: { children: ReactNode; classN
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-nowrap gap-2">
       <button className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-amber-200 hover:bg-amber-50" type="button" onClick={onEdit}>
         Sửa
       </button>

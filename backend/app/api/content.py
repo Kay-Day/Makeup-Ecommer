@@ -7,6 +7,7 @@ from app.core.deps import get_db
 from app.models.blog_article import BlogArticle
 from app.models.blog_category import BlogCategory
 from app.schemas import BlogArticleOut, BlogCategoryOut
+from app.utils.slug import normalize_slug
 
 router = APIRouter(tags=["Content"])
 
@@ -43,6 +44,27 @@ def get_blog_article(article_id: int, db: Session = Depends(get_db)):
         .filter(BlogArticle.id == article_id, BlogArticle.is_published == True)
         .first()
     )
+    if not article:
+        raise HTTPException(status_code=404, detail="Blog article not found")
+    return article
+
+
+@router.get("/blog-articles/slug/{slug}", response_model=BlogArticleOut)
+def get_blog_article_by_slug(slug: str, db: Session = Depends(get_db)):
+    article = (
+        db.query(BlogArticle)
+        .options(joinedload(BlogArticle.author), joinedload(BlogArticle.category))
+        .filter(BlogArticle.slug == slug, BlogArticle.is_published == True)
+        .first()
+    )
+    if not article:
+        articles = (
+            db.query(BlogArticle)
+            .options(joinedload(BlogArticle.author), joinedload(BlogArticle.category))
+            .filter(BlogArticle.is_published == True)
+            .all()
+        )
+        article = next((item for item in articles if item.public_slug == slug or normalize_slug(item.title) == slug), None)
     if not article:
         raise HTTPException(status_code=404, detail="Blog article not found")
     return article

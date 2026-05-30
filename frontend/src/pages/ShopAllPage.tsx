@@ -1,16 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductCard } from '../components/ui/ProductCard';
 import { useTranslation } from 'react-i18next';
 import { brandApi, categoryApi, productApi } from '../services/api';
 import type { Brand, Category, Product } from '../services/api';
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 20;
+const PRICE_MIN = 0;
+const PRICE_MAX = 5000000;
+const PRICE_STEP = 50000;
+const PRICE_PRESETS = [
+  { label: 'Tất cả', min: '', max: '' },
+  { label: 'Dưới 300k', min: '0', max: '300000' },
+  { label: '300k - 500k', min: '300000', max: '500000' },
+  { label: '500k - 1tr', min: '500000', max: '1000000' },
+  { label: '1tr - 2tr', min: '1000000', max: '2000000' },
+  { label: 'Trên 2tr', min: '2000000', max: '' },
+];
+
+function formatPrice(value: string | number) {
+  const numeric = Number(value || 0);
+  if (numeric >= 1000000) {
+    return `${(numeric / 1000000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}tr`;
+  }
+  return `${Math.round(numeric / 1000).toLocaleString('vi-VN')}k`;
+}
 
 export function ShopAllPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +40,7 @@ export function ShopAllPage() {
   const [activeBrand, setActiveBrand] = useState<number | undefined>(
     searchParams.get('brand') ? Number(searchParams.get('brand')) : undefined
   );
+  const [activeSale, setActiveSale] = useState(searchParams.get('sale') === 'true');
   const [search, setSearch] = useState('');
   const [openSection, setOpenSection] = useState<string | null>('category');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +48,8 @@ export function ShopAllPage() {
   const [sortBy, setSortBy] = useState<string>('featured');
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
+  const [draftMinPrice, setDraftMinPrice] = useState(searchParams.get('min_price') || '');
+  const [draftMaxPrice, setDraftMaxPrice] = useState(searchParams.get('max_price') || '');
 
   // Read category slug from URL params
   useEffect(() => {
@@ -44,21 +67,27 @@ export function ShopAllPage() {
       setLoading(true);
       try {
         const sortParam = sortBy === 'featured' ? undefined : sortBy === 'newest' ? 'created_at' : sortBy === 'price_asc' ? 'price_asc' : sortBy === 'price_desc' ? 'price_desc' : undefined;
-        const [productsResponse, categoriesResponse, brandsResponse] = await Promise.all([
+        const filterParams = {
+          category_id: activeCategory,
+          brand_id: activeBrand,
+          search: search || undefined,
+          min_price: minPrice ? Number(minPrice) : undefined,
+          max_price: maxPrice ? Number(maxPrice) : undefined,
+          sale: activeSale || undefined,
+        };
+        const [productsResponse, countResponse, categoriesResponse, brandsResponse] = await Promise.all([
           productApi.getAll({
-            category_id: activeCategory,
-            brand_id: activeBrand,
-            search: search || undefined,
-            min_price: minPrice ? Number(minPrice) : undefined,
-            max_price: maxPrice ? Number(maxPrice) : undefined,
+            ...filterParams,
             limit: PAGE_SIZE,
             offset: (page - 1) * PAGE_SIZE,
             sort: sortParam,
           }),
+          productApi.getCount(filterParams),
           categoryApi.getAll(),
           brandApi.getAll(),
         ]);
         setProducts(productsResponse.data);
+        setTotalProducts(countResponse.data.count);
         setCategories(categoriesResponse.data);
         setBrands(brandsResponse.data);
       } catch (error) {
@@ -69,10 +98,82 @@ export function ShopAllPage() {
     };
 
     void fetchProducts();
-  }, [activeCategory, activeBrand, search, page, sortBy, minPrice, maxPrice]);
+  }, [activeCategory, activeBrand, activeSale, search, page, sortBy, minPrice, maxPrice]);
 
-  const activeFiltersCount = (activeCategory ? 1 : 0) + (activeBrand ? 1 : 0) + (minPrice || maxPrice ? 1 : 0);
-  const categoryLabel = (category: Category) => `${category.parent_id ? '— ' : ''}${category.name}`;
+  const groupedCategories = useMemo(() => {
+    const parents = categories.filter((category) => !category.parent_id);
+    const childrenByParent = categories.reduce<Record<number, Category[]>>((acc, category) => {
+      if (category.parent_id) {
+        acc[category.parent_id] = [...(acc[category.parent_id] || []), category];
+      }
+      return acc;
+    }, {});
+    const parentIds = new Set(parents.map((category) => category.id));
+    const orphanChildren = categories.filter((category) => category.parent_id && !parentIds.has(category.parent_id));
+    return { parents, childrenByParent, orphanChildren };
+  }, [categories]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextMin = draftMinPrice ? String(Math.min(Number(draftMinPrice), PRICE_MAX)) : '';
+      const nextMax = draftMaxPrice ? String(Math.min(Number(draftMaxPrice), PRICE_MAX)) : '';
+      if (nextMin !== minPrice || nextMax !== maxPrice) {
+        setMinPrice(nextMin);
+        setMaxPrice(nextMax);
+        setPage(1);
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [draftMinPrice, draftMaxPrice, minPrice, maxPrice]);
+
+  const activeFiltersCount = (activeCategory ? 1 : 0) + (activeBrand ? 1 : 0) + (activeSale ? 1 : 0) + (minPrice || maxPrice ? 1 : 0);
+  const priceRangeMin = draftMinPrice ? Number(draftMinPrice) : PRICE_MIN;
+  const priceRangeMax = draftMaxPrice ? Number(draftMaxPrice) : PRICE_MAX;
+  const minPercent = (priceRangeMin / PRICE_MAX) * 100;
+  const maxPercent = (priceRangeMax / PRICE_MAX) * 100;
+  const selectedPreset = PRICE_PRESETS.find((preset) => preset.min === minPrice && preset.max === maxPrice)?.label;
+  const applyPricePreset = (min: string, max: string) => {
+    setDraftMinPrice(min);
+    setDraftMaxPrice(max);
+    setMinPrice(min);
+    setMaxPrice(max);
+    setPage(1);
+  };
+  const clearPriceFilter = () => applyPricePreset('', '');
+  const renderCategoryButton = (category: Category, child = false) => (
+    <button
+      key={category.id}
+      className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+        activeCategory === category.id
+          ? 'bg-emerald-100 text-emerald-900'
+          : child
+            ? 'text-stone-500 hover:bg-stone-100 hover:text-emerald-800'
+            : 'text-stone-700 hover:bg-stone-100'
+      } ${child ? 'pl-7' : ''}`}
+      onClick={() => { setActiveCategory(category.id); setPage(1); }}
+    >
+      <span className="flex items-center gap-2">
+        {child ? <span className="h-px w-3 bg-stone-300" /> : null}
+        {category.name}
+      </span>
+    </button>
+  );
+  const renderCategoryTree = () => (
+    <>
+      {groupedCategories.parents.map((category) => (
+        <div key={category.id} className="space-y-1">
+          {renderCategoryButton(category)}
+          {groupedCategories.childrenByParent[category.id]?.map((child) => renderCategoryButton(child, true))}
+        </div>
+      ))}
+      {groupedCategories.orphanChildren.length > 0 ? (
+        <div className="border-t border-stone-100 pt-2">
+          {groupedCategories.orphanChildren.map((category) => renderCategoryButton(category))}
+        </div>
+      ) : null}
+    </>
+  );
   const renderPriceFilter = () => (
     <div className="border border-stone-200 rounded-xl overflow-hidden shrink-0 bg-white shadow-sm">
       <button
@@ -82,11 +183,92 @@ export function ShopAllPage() {
         <span className="font-semibold text-sm text-emerald-900">Khoảng giá</span>
         <span className={`material-symbols-outlined text-stone-400 text-lg transition-transform duration-300 ${openSection === 'price' ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
-      <div className={`transition-all duration-300 overflow-hidden ${openSection === 'price' ? 'max-h-48' : 'max-h-0'}`}>
-        <div className="grid grid-cols-2 gap-2 px-3 pb-3">
-          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Từ" value={minPrice} onChange={(event) => { setMinPrice(event.target.value); setPage(1); }} />
-          <input className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600" type="number" min="0" placeholder="Đến" value={maxPrice} onChange={(event) => { setMaxPrice(event.target.value); setPage(1); }} />
-          <button className="col-span-2 rounded-lg bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-600 transition hover:bg-stone-200" type="button" onClick={() => { setMinPrice(''); setMaxPrice(''); setPage(1); }}>Xóa khoảng giá</button>
+      <div className={`transition-all duration-300 overflow-hidden ${openSection === 'price' ? 'max-h-[28rem]' : 'max-h-0'}`}>
+        <div className="space-y-4 px-3 pb-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">Từ</span>
+              <span className="mt-1 block text-sm font-bold text-emerald-900">{formatPrice(priceRangeMin)}</span>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-right">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">Đến</span>
+              <span className="mt-1 block text-sm font-bold text-emerald-900">{draftMaxPrice ? formatPrice(priceRangeMax) : `${formatPrice(PRICE_MAX)}+`}</span>
+            </div>
+          </div>
+
+          <div className="relative h-10 pt-4">
+            <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-stone-100" />
+            <div
+              className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-emerald-700"
+              style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
+            />
+            <input
+              className="pointer-events-none absolute inset-x-0 top-1/2 h-2 w-full -translate-y-1/2 appearance-none bg-transparent accent-emerald-800 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-emerald-800 [&::-webkit-slider-thumb]:shadow-md"
+              type="range"
+              min={PRICE_MIN}
+              max={PRICE_MAX}
+              step={PRICE_STEP}
+              value={priceRangeMin}
+              aria-label="Giá thấp nhất"
+              onChange={(event) => {
+                const next = Math.min(Number(event.target.value), priceRangeMax - PRICE_STEP);
+                setDraftMinPrice(String(Math.max(PRICE_MIN, next)));
+              }}
+            />
+            <input
+              className="pointer-events-none absolute inset-x-0 top-1/2 h-2 w-full -translate-y-1/2 appearance-none bg-transparent accent-emerald-800 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-emerald-800 [&::-webkit-slider-thumb]:shadow-md"
+              type="range"
+              min={PRICE_MIN}
+              max={PRICE_MAX}
+              step={PRICE_STEP}
+              value={priceRangeMax}
+              aria-label="Giá cao nhất"
+              onChange={(event) => {
+                const next = Math.max(Number(event.target.value), priceRangeMin + PRICE_STEP);
+                setDraftMaxPrice(next >= PRICE_MAX ? '' : String(next));
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+              type="number"
+              min="0"
+              placeholder="Từ"
+              value={draftMinPrice}
+              onChange={(event) => setDraftMinPrice(event.target.value)}
+            />
+            <input
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+              type="number"
+              min="0"
+              placeholder="Đến"
+              value={draftMaxPrice}
+              onChange={(event) => setDraftMaxPrice(event.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {PRICE_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                className={`rounded-lg border px-3 py-2 text-left text-xs font-bold transition ${
+                  selectedPreset === preset.label
+                    ? 'border-emerald-700 bg-emerald-50 text-emerald-900'
+                    : 'border-stone-200 bg-white text-stone-600 hover:border-emerald-200 hover:bg-emerald-50'
+                }`}
+                type="button"
+                onClick={() => applyPricePreset(preset.min, preset.max)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          <button className="w-full rounded-lg bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-600 transition hover:bg-stone-200" type="button" onClick={clearPriceFilter}>
+            Xóa khoảng giá
+          </button>
         </div>
       </div>
     </div>
@@ -167,19 +349,17 @@ export function ShopAllPage() {
                     <div className="px-3 pb-3 space-y-1">
                       <button
                         className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => { setActiveCategory(undefined); setPage(1); }}
+                        onClick={() => { setActiveCategory(undefined); setActiveSale(false); setPage(1); }}
                       >
                         Tất cả sản phẩm
                       </button>
-                      {categories.map((category) => (
-                        <button
-                          key={category.id}
-                          className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                          onClick={() => { setActiveCategory(category.id); setPage(1); }}
-                        >
-                          {categoryLabel(category)}
-                        </button>
-                      ))}
+                      {renderCategoryTree()}
+                      <button
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSale ? 'bg-red-100 text-red-800' : 'text-stone-600 hover:bg-stone-100'}`}
+                        onClick={() => { setActiveSale(!activeSale); setPage(1); }}
+                      >
+                        Flash sale
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -190,7 +370,7 @@ export function ShopAllPage() {
                     className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-stone-50 transition"
                     onClick={() => setOpenSection(openSection === 'brand' ? null : 'brand')}
                   >
-                    <span className="font-semibold text-sm text-emerald-900">Thương hiệu</span>
+                    <span className="font-semibold text-sm text-emerald-900">Thương hiệu ({brands.length})</span>
                     <span className={`material-symbols-outlined text-stone-400 text-lg transition-transform duration-300 ${openSection === 'brand' ? 'rotate-180' : ''}`}>
                       expand_more
                     </span>
@@ -251,19 +431,17 @@ export function ShopAllPage() {
                   <div className="px-3 pb-3 space-y-1">
                     <button
                       className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === undefined ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                  onClick={() => { setActiveCategory(undefined); setPage(1); }}
+                  onClick={() => { setActiveCategory(undefined); setActiveSale(false); setPage(1); }}
                     >
                       Tất cả sản phẩm
                     </button>
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeCategory === category.id ? 'bg-emerald-100 text-emerald-900' : 'text-stone-600 hover:bg-stone-100'}`}
-                        onClick={() => { setActiveCategory(category.id); setPage(1); }}
-                      >
-                        {categoryLabel(category)}
-                      </button>
-                    ))}
+                    {renderCategoryTree()}
+                    <button
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSale ? 'bg-red-100 text-red-800' : 'text-stone-600 hover:bg-stone-100'}`}
+                      onClick={() => { setActiveSale(!activeSale); setPage(1); }}
+                    >
+                      Flash sale
+                    </button>
                   </div>
                 </div>
               </div>
@@ -273,7 +451,7 @@ export function ShopAllPage() {
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-stone-50 transition"
                   onClick={() => setOpenSection(openSection === 'brand' ? null : 'brand')}
                 >
-                  <span className="font-semibold text-sm text-emerald-900">Thương hiệu</span>
+                  <span className="font-semibold text-sm text-emerald-900">Thương hiệu ({brands.length})</span>
                   <span className={`material-symbols-outlined text-stone-400 text-lg transition-transform duration-300 ${openSection === 'brand' ? 'rotate-180' : ''}`}>
                     expand_more
                   </span>
@@ -306,7 +484,7 @@ export function ShopAllPage() {
           <div className="flex-grow min-w-0">
             <div className="flex justify-between items-end mb-8 md:mb-10">
               <p className="text-sm text-stone-500">
-                {loading ? 'Đang tải...' : `${products.length} sản phẩm`}
+                {loading ? 'Đang tải...' : `Hiển thị ${products.length}/${totalProducts} sản phẩm`}
               </p>
               <div className="flex items-center gap-2 text-sm">
                 <span className="material-symbols-outlined text-base text-stone-400">swap_vert</span>
@@ -324,7 +502,7 @@ export function ShopAllPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 md:gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="aspect-[4/5] bg-stone-100 rounded-2xl mb-4" />
@@ -334,7 +512,7 @@ export function ShopAllPage() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 gap-y-10">
+              <div className="grid grid-cols-2 gap-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 md:gap-6 md:gap-y-10">
                 {products.map(product => (
                   <ProductCard
                     key={product.id}
@@ -369,8 +547,11 @@ export function ShopAllPage() {
                 >
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
                 </button>
-                {Array.from({ length: Math.min(3, page + 1) }, (_, i) => {
-                  const pageNum = Math.max(1, page - 1) + i;
+                {Array.from({ length: Math.min(5, Math.max(1, Math.ceil(totalProducts / PAGE_SIZE))) }, (_, i) => {
+                  const totalPages = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
+                  const startPage = Math.min(Math.max(1, page - 2), Math.max(1, totalPages - 4));
+                  const pageNum = startPage + i;
+                  if (pageNum > totalPages) return null;
                   return (
                     <button
                       key={pageNum}
@@ -383,8 +564,8 @@ export function ShopAllPage() {
                 })}
                 <button
                   onClick={() => setPage(p => p + 1)}
-                  disabled={products.length < PAGE_SIZE}
-                  className={`w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full transition-colors ${products.length < PAGE_SIZE ? 'text-stone-300 cursor-not-allowed' : 'hover:bg-stone-100 text-stone-400'}`}
+                  disabled={page >= Math.ceil(totalProducts / PAGE_SIZE)}
+                  className={`w-10 h-10 flex items-center justify-center border border-stone-200 rounded-full transition-colors ${page >= Math.ceil(totalProducts / PAGE_SIZE) ? 'text-stone-300 cursor-not-allowed' : 'hover:bg-stone-100 text-stone-400'}`}
                 >
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
                 </button>

@@ -68,46 +68,36 @@ export function Header() {
 
   return (
     <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 shadow-[0_4px_30px_rgba(79,95,63,0.03)] h-20">
-      <nav className="flex justify-between items-center h-full px-6 md:px-16 max-w-[1440px] mx-auto">
-        <Link to="/" className="text-xl font-bold tracking-tighter text-emerald-900 font-h1 shrink-0">
+      <nav className="flex h-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-[1440px] mx-auto">
+        <Link to="/" className="shrink-0 text-xl font-bold tracking-tighter text-emerald-900 font-h1">
           TMC
         </Link>
 
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-1.5 lg:flex xl:gap-2">
           {navLinks.map(link => (
             <Link
               key={link.to}
               to={link.to}
-              className={`font-medium tracking-tight transition-colors duration-300 pb-1 ${
+              className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tracking-tight transition-colors duration-300 xl:px-4 ${
                 isActive(link.to, link.exact)
-                  ? 'text-emerald-900 border-b-2 border-emerald-800'
-                  : 'text-stone-500 hover:text-emerald-800 border-b-2 border-transparent'
+                  ? 'bg-emerald-900 text-white shadow-sm'
+                  : 'text-stone-600 hover:bg-emerald-50 hover:text-emerald-900'
               }`}
             >
               {link.label}
             </Link>
           ))}
-          {isAdmin ? (
-            <Link
-              to="/admin"
-              className={`font-medium tracking-tight transition-colors duration-300 pb-1 ${
-                isActive('/admin')
-                  ? 'text-emerald-900 border-b-2 border-emerald-800'
-                  : 'text-stone-500 hover:text-emerald-800 border-b-2 border-transparent'
-              }`}
-            >
-              {t('header.admin')}
-            </Link>
-          ) : null}
         </div>
 
-        <div className="flex items-center space-x-5">
-          <button onClick={toggleLanguage} className="text-emerald-900 font-bold hover:opacity-70 transition-opacity bg-stone-100 px-3 py-1 rounded-full text-sm">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <button onClick={toggleLanguage} className="rounded-full bg-stone-100 px-3.5 py-2 text-sm font-bold text-emerald-900 transition hover:bg-emerald-50 hover:text-emerald-950" aria-label={i18n.language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'}>
             {i18n.language === 'vi' ? 'EN' : 'VI'}
           </button>
-          <Link to="/search" className="material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity hidden sm:block">search</Link>
-          <Link to="/cart" className="relative material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity">
-            shopping_bag
+          <Link to="/search" className="hidden h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-emerald-900 transition hover:bg-emerald-50 hover:text-emerald-950 sm:inline-flex" aria-label={t('header.search')}>
+            <span className="material-symbols-outlined text-[21px]">search</span>
+          </Link>
+          <Link to="/cart" className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-emerald-900 transition hover:bg-emerald-50 hover:text-emerald-950" aria-label={t('header.cart')}>
+            <span className="material-symbols-outlined text-[21px]">shopping_bag</span>
             {cartCount ? (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#8b6837] px-1 text-[10px] font-bold text-white">
                 {cartCount}
@@ -117,16 +107,18 @@ export function Header() {
           {isAdmin ? (
             <Link
               to="/admin"
-              className="hidden items-center gap-1.5 rounded-full bg-emerald-900 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 lg:inline-flex"
+              className="hidden items-center gap-1.5 whitespace-nowrap rounded-full bg-emerald-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 xl:inline-flex"
             >
               <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
               {t('header.admin')}
             </Link>
           ) : null}
-          <Link to={currentUser ? '/account' : '/login'} className="material-symbols-outlined text-emerald-900 hover:opacity-70 transition-opacity hidden sm:block">person</Link>
+          <Link to={currentUser ? '/account' : '/login'} className="hidden h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-emerald-900 transition hover:bg-emerald-50 hover:text-emerald-950 sm:inline-flex" aria-label={currentUser ? t('header.account') : t('header.login')}>
+            <span className="material-symbols-outlined text-[21px]">person</span>
+          </Link>
           {currentUser ? (
             <button
-              className="hidden items-center gap-1.5 rounded-full border border-stone-200 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:border-emerald-200 hover:bg-emerald-50 lg:inline-flex"
+              className="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-stone-200 px-3.5 py-2 text-xs font-bold text-emerald-900 transition hover:border-emerald-200 hover:bg-emerald-50 2xl:inline-flex"
               onClick={handleLogout}
               type="button"
             >
@@ -136,7 +128,7 @@ export function Header() {
           ) : null}
 
           <button
-            className="md:hidden material-symbols-outlined text-emerald-900 text-2xl"
+            className="material-symbols-outlined flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-2xl text-emerald-900 lg:hidden"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label="Menu"
           >
@@ -146,7 +138,7 @@ export function Header() {
       </nav>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-20 z-40 bg-black/40 backdrop-blur-sm md:hidden" onClick={() => setMobileMenuOpen(false)}>
+        <div className="fixed inset-0 top-20 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div className="bg-white border-t border-stone-100 shadow-2xl animate-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col px-6 py-4 space-y-1">
               {navLinks.map(link => (

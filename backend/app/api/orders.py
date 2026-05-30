@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -21,7 +22,7 @@ from app.services.pricing import (
     get_order_with_relations,
     resolve_pricing_rule,
 )
-from app.schemas import CheckoutSettingsOut, CustomerPricingStatusOut, OrderCreate, OrderOut
+from app.schemas import CheckoutSettingsOut, CustomerPricingStatusOut, OrderCreate, OrderOut, OrderQuoteCreate, OrderQuoteOut
 from app.services.sepay import make_payment_code
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -41,36 +42,13 @@ def get_default_shipping_fee(db: Session) -> float:
     return round(float(setting.default_shipping_fee or 30000), 2) if setting else 30000.0
 
 
-@router.get("/checkout-settings", response_model=CheckoutSettingsOut)
-def get_checkout_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return {
-        "default_shipping_fee": get_default_shipping_fee(db),
-        "payment_methods": ["cod", "sepay"],
-    }
-
-@router.post("", response_model=OrderOut)
-def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    if not data.items:
-        raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất một sản phẩm")
-    if data.payment_method not in {"cod", "sepay"}:
-        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ thanh toán COD hoặc SePay")
-    if not data.shipping_full_name.strip():
-        raise HTTPException(status_code=400, detail="Vui lòng nhập họ tên người nhận")
-    if not data.shipping_phone.strip():
-        raise HTTPException(status_code=400, detail="Vui lòng nhập số điện thoại người nhận")
-    if not data.shipping_address.strip():
-        raise HTTPException(status_code=400, detail="Vui lòng nhập địa chỉ giao hàng")
-    if not data.shipping_city.strip():
-        raise HTTPException(status_code=400, detail="Vui lòng nhập tỉnh/thành phố")
-
-    # Build combo_map from items that have combo_id
+def build_combo_map(db: Session, items: list) -> dict[int, dict]:
     combo_map: dict[int, dict] = {}
-    for item in data.items:
+    for item in items:
         if item.combo_id:
             combo = db.query(Combo).filter(Combo.id == item.combo_id, Combo.is_active == True).first()
             if not combo:
                 raise HTTPException(status_code=400, detail=f"Combo {item.combo_id} not found or inactive")
-            # Verify this product actually belongs to the combo
             combo_item = db.query(ComboItem).filter(
                 ComboItem.combo_id == item.combo_id,
                 ComboItem.product_id == item.product_id
@@ -78,8 +56,12 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
             if not combo_item:
                 raise HTTPException(status_code=400, detail=f"Product {item.product_id} does not belong to combo {item.combo_id}")
             combo_map[item.product_id] = {"combo_id": combo.id, "discount_percent": combo.discount_percent}
+    return combo_map
 
-    for item in data.items:
+
+def validate_order_items(db: Session, items: list) -> None:
+    requested: dict[tuple[int, str | None], dict] = {}
+    for item in items:
         product = db.query(Product).filter(Product.id == item.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
@@ -87,21 +69,80 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
             raise HTTPException(status_code=400, detail=f"Product {product.name} is not available")
         if item.quantity <= 0:
             raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
-        if product.stock < item.quantity:
-            raise HTTPException(status_code=400, detail=f"Sản phẩm '{product.name}' không đủ tồn kho (còn {product.stock} sản phẩm, bạn đặt {item.quantity})")
+        available_stock = product.stock
+        normalized_variant_code = item.variant_code.strip() if item.variant_code else None
+        if item.variant_code and product.variant_options:
+            try:
+                variants = json.loads(product.variant_options)
+            except (TypeError, ValueError):
+                variants = []
+            variant = next(
+                (
+                    option for option in variants
+                    if str(option.get("code") or option.get("sku") or option.get("name") or "").strip().lower()
+                    == item.variant_code.strip().lower()
+                ),
+                None,
+            )
+            if not variant:
+                raise HTTPException(status_code=400, detail=f"Mã sản phẩm '{item.variant_code}' không tồn tại")
+            available_stock = int(variant.get("stock") or 0)
+            normalized_variant_code = str(variant.get("code") or variant.get("sku") or variant.get("name") or item.variant_code).strip()
+        if available_stock < item.quantity:
+            raise HTTPException(status_code=400, detail=f"Sản phẩm '{product.name}' không đủ tồn kho (còn {available_stock} sản phẩm, bạn đặt {item.quantity})")
+        key = (product.id, normalized_variant_code)
+        current = requested.setdefault(
+            key,
+            {"quantity": 0, "available_stock": available_stock, "name": product.name},
+        )
+        current["quantity"] += item.quantity
+        if current["quantity"] > current["available_stock"]:
+            variant_label = f" mã {normalized_variant_code}" if normalized_variant_code else ""
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Sản phẩm '{product.name}'{variant_label} không đủ tồn kho "
+                    f"(còn {current['available_stock']} sản phẩm, bạn đặt {current['quantity']})"
+                ),
+            )
 
-    retail_total, _ = calculate_order_total(db, data.items, combo_map=combo_map)
+
+def decrement_variant_stock(product: Product, variant_code: str | None, quantity: int) -> None:
+    if not variant_code or not product.variant_options:
+        return
+    try:
+        variants = json.loads(product.variant_options)
+    except (TypeError, ValueError):
+        return
+    if not isinstance(variants, list):
+        return
+    normalized = variant_code.strip().lower()
+    changed = False
+    for variant in variants:
+        code = str(variant.get("code") or variant.get("sku") or variant.get("name") or "").strip().lower()
+        if code == normalized:
+            variant["stock"] = max(0, int(variant.get("stock") or 0) - quantity)
+            changed = True
+            break
+    if changed:
+        product.variant_options = json.dumps(variants, ensure_ascii=False)
+
+
+def calculate_checkout_quote(db: Session, user: User, items: list, discount_code_value: str | None = None) -> dict:
+    combo_map = build_combo_map(db, items)
+    validate_order_items(db, items)
+
+    retail_total, _ = calculate_order_total(db, items, combo_map=combo_map)
     pricing_rule = resolve_pricing_rule(db, user.id, retail_total)
-    final_total, final_lines = calculate_order_total(db, data.items, pricing_rule, combo_map=combo_map)
-    price_type = pricing_rule.price_type
+    final_total, final_lines = calculate_order_total(db, items, pricing_rule, combo_map=combo_map)
 
     discount_code = None
     item_subtotal = round(sum(line["unit_price"] * line["quantity"] for line in final_lines), 2)
     discount_code_amount = 0.0
-    if data.discount_code:
+    if discount_code_value:
         discount_code = (
             db.query(DiscountCode)
-            .filter(DiscountCode.code == data.discount_code.upper(), DiscountCode.is_active == True)
+            .filter(DiscountCode.code == discount_code_value.upper(), DiscountCode.is_active == True)
             .first()
         )
         if not discount_code:
@@ -122,6 +163,97 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
 
     shipping_fee = get_default_shipping_fee(db)
     order_total = round(final_total + shipping_fee, 2)
+    pricing_discount_amount = round(max(0.0, retail_total - item_subtotal), 2)
+
+    return {
+        "retail_total": retail_total,
+        "pricing_rule": pricing_rule,
+        "final_lines": final_lines,
+        "discount_code": discount_code,
+        "item_subtotal": item_subtotal,
+        "discount_code_amount": discount_code_amount,
+        "shipping_fee": shipping_fee,
+        "order_total": order_total,
+        "subtotal_after_discount": final_total,
+        "pricing_discount_amount": pricing_discount_amount,
+    }
+
+
+def serialize_checkout_quote(quote: dict) -> dict:
+    pricing_rule = quote["pricing_rule"]
+    subtotal_after_discount = quote["subtotal_after_discount"]
+    total_discount_amount = round(max(0.0, quote["retail_total"] - subtotal_after_discount), 2)
+    return {
+        "total_amount": quote["order_total"],
+        "applied_price_type": pricing_rule.price_type,
+        "pricing_label": pricing_rule.label,
+        "pricing_rule_name": pricing_rule.rule_name,
+        "pricing_discount_percent": pricing_rule.discount_percent,
+        "subtotal_before_discount": quote["retail_total"],
+        "item_subtotal": quote["item_subtotal"],
+        "pricing_discount_amount": quote["pricing_discount_amount"],
+        "discount_code_amount": quote["discount_code_amount"],
+        "total_discount_amount": total_discount_amount,
+        "shipping_fee": quote["shipping_fee"],
+        "subtotal_after_discount": subtotal_after_discount,
+        "items": [
+            {
+                "product_id": line["product"].id,
+                "variant_code": line.get("variant_code"),
+                "variant_name": line.get("variant_name"),
+                "quantity": line["quantity"],
+                "unit_price": line["unit_price"],
+                "line_total": round(line["unit_price"] * line["quantity"], 2),
+                "retail_unit_price": line["retail_unit_price"],
+                "base_unit_price": round(line["base_unit_price"], 2),
+                "combo_id": line.get("combo_id"),
+                "combo_discount_percent": line.get("combo_discount_percent"),
+            }
+            for line in quote["final_lines"]
+        ],
+    }
+
+
+@router.get("/checkout-settings", response_model=CheckoutSettingsOut)
+def get_checkout_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return {
+        "default_shipping_fee": get_default_shipping_fee(db),
+        "payment_methods": ["cod", "sepay"],
+    }
+
+
+@router.post("/quote", response_model=OrderQuoteOut)
+def quote_order(data: OrderQuoteCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not data.items:
+        raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất một sản phẩm")
+    quote = calculate_checkout_quote(db, user, data.items, data.discount_code)
+    return serialize_checkout_quote(quote)
+
+
+@router.post("", response_model=OrderOut)
+def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not data.items:
+        raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất một sản phẩm")
+    if data.payment_method not in {"cod", "sepay"}:
+        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ thanh toán COD hoặc SePay")
+    if not data.shipping_full_name.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập họ tên người nhận")
+    if not data.shipping_phone.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập số điện thoại người nhận")
+    if not data.shipping_address.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập địa chỉ giao hàng")
+    if not data.shipping_city.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập tỉnh/thành phố")
+
+    quote = calculate_checkout_quote(db, user, data.items, data.discount_code)
+    pricing_rule = quote["pricing_rule"]
+    final_lines = quote["final_lines"]
+    price_type = pricing_rule.price_type
+    discount_code = quote["discount_code"]
+    item_subtotal = quote["item_subtotal"]
+    discount_code_amount = quote["discount_code_amount"]
+    shipping_fee = quote["shipping_fee"]
+    order_total = quote["order_total"]
 
     order = Order(
         user_id=user.id,
@@ -152,11 +284,14 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
 
     for line in final_lines:
         line["product"].stock -= line["quantity"]
+        decrement_variant_stock(line["product"], line.get("variant_code"), line["quantity"])
         item = OrderItem(
             order_id=order.id,
             product_id=line["product"].id,
             quantity=line["quantity"],
             unit_price=line["unit_price"],
+            variant_code=line.get("variant_code"),
+            variant_name=line.get("variant_name"),
             combo_id=line.get("combo_id"),
             combo_discount_percent=line.get("combo_discount_percent"),
         )
@@ -165,7 +300,7 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
     if discount_code:
         discount_code.current_usage += 1
 
-    pricing_savings = round(max(0.0, retail_total - item_subtotal), 2)
+    pricing_savings = quote["pricing_discount_amount"]
     status_label = STATUS_LABELS.get(order.status, order.status)
     create_notification(
         db,

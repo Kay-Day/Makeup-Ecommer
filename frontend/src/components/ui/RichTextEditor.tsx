@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import ImageExtension from '@tiptap/extension-image';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface RichTextEditorProps {
@@ -30,6 +30,11 @@ export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEdito
       },
     },
   });
+
+  useEffect(() => {
+    if (!editor || editor.getHTML() === value) return;
+    editor.commands.setContent(value || '', { emitUpdate: false });
+  }, [editor, value]);
 
   const handleImageInsert = useCallback(async () => {
     if (!onImageUpload) {
